@@ -1,0 +1,647 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace YiTeng.Models.SystemModel
+{
+    public class GetServiceTicketRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int page;
+        /// <summary>
+        /// 
+        /// </summary>
+        public int size;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string Status;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string sortBy;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string keyword;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string searchFlag;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string userId;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string wechat;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string returnUrl;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string responseQX;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string startTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string endTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ctype;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string isManager;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string subTabIndex;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string subTabIndexFJ;
+    }
+    public class GetServiceTicketResponse
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int totalElements { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int noTotalElements { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemServiceTicket> data { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemServiceTicket> noData { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string[] tabList { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string[] tabListFJ { get; set; }
+    }
+    public class DataItemServiceTicket
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string customer { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string productName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverCard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverWechat { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDriverCard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDriverName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDriverWechat { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string shipmentTrackingNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectReturnPlace { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectReturnPlaceTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string createUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string returnStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string offDutyDays { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string repairDescription { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyExpectNextShipmentTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectNextShipmentTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectNextShipmentClass { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string status { get; set; }
+        ///<summary>
+        ///
+        /// </summary>
+        public string modifyTime { get; set; }
+        ///<summary>
+        ///
+        /// </summary>
+        public string fillStartTime { get; set; }
+        ///<summary>
+        ///
+        /// </summary>
+        public string fillEndTime { get; set; }
+        ///<summary>
+        ///
+        /// </summary>
+        public string expectStartTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string avatar { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string serviceStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyOffDutyDays { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int mainDriverStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int deputyStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyReturnStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string plateNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string serviceStartTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string thisServiceStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int thisServiceStatusInt { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string planReturnTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string offDutyReason { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyOffDutyReaon { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverAddress { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyAddress { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string productClass { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverOffDutyType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverApprovalStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyOffDutyType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyApprovalStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expiryCertificate { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyExpiryCertificate { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string freightGroup { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyFreightGroup { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string dutySerialNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string dutyBPMCreateTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDutySerialNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDutyBPMCreateTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string serviceSerialNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string serviceBPMCreateTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyServiceSerialNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyServiceBPMCreateTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string dutyApproveStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDutyApproveStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string unusualType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string unusualReason { get; set; }
+        //先前数据
+        public string expectReturnPlaceTimeOld { get; set; }
+        public string returnStatusOld { get; set; }
+        public string offDutyDaysOld { get; set; }
+        public string offDutyReasonOld { get; set; }
+        public string deputyOffDutyDaysOld { get; set; }
+        public string deputyOffDutyReaonOld { get; set; }
+        public string repairDescriptionOld { get; set; }
+        public string deputyExpectNextShipmentTimeOld { get; set; }
+        public string expectNextShipmentTimeOld { get; set; }
+        public string expectNextShipmentClassOld { get; set; }
+        public string mainDriverOffDutyTypeOld { get; set; }
+        public string deputyOffDutyTypeOld { get; set; }
+        public string expiryCertificateOld { get; set; }
+        public string deputyExpiryCertificateOld { get; set; }
+        public string freightGroupOld { get; set; }
+        public string deputyFreightGroupOld { get; set; }
+        public string mainDriverFillAddressOld { get; set; }
+        public string deputyDriverFillAddressOld { get; set; }
+        public string productClassOld { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyUnusalReason { get; set; }
+    }
+    public class isType
+    {
+        public int num { get; set; }
+    }
+    public class ServiceTicketInfo
+    {
+        public string dutyServiceSerialNum { get; set; }
+    }
+    public class AddServiceTicketRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string status { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectReturnPlace { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectReturnPlaceTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string returnStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string offDutyDays { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string repairDescription { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyExpectNextShipmentTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectNextShipmentTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expectNextShipmentClass { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string modify_time { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string fillStartTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string fillUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyFillUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyReturnStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public float deputyOffDutyDays { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string wechat { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverFillAddress { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDriverFillAddress { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string offDutyReason { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyOffDutyReason { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverLongitude { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverlatitude { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyLongitude { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputylatitude { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string offDutyType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyOffDutyType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string expiryCertificate { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string freightGroup { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string unusalType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string unusalReason { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string dutySerialNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string dutyBPMCreateTime { get; set; }
+        //BPM用到的无需存储数据到运营系统
+        /// <summary>
+        /// 
+        /// </summary>
+        public string customer { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string shipmentTrackingNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string thisServiceStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string plateNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string mainDriverName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyDriverName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string productName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string planReturnTime { get; set; }
+        //先前数据
+        public string expectReturnPlaceTimeOld { get; set; }
+        public string returnStatusOld { get; set; }
+        public string deputyReturnStatusOld { get; set; }
+        public string offDutyDaysOld { get; set; }
+        public string offDutyReasonOld { get; set; }
+        public string deputyOffDutyDaysOld { get; set; }
+        public string deputyOffDutyReaonOld { get; set; }
+        public string repairDescriptionOld { get; set; }
+        public string deputyExpectNextShipmentTimeOld { get; set; }
+        public string expectNextShipmentTimeOld { get; set; }
+        public string expectNextShipmentClassOld { get; set; }
+        public string mainDriverOffDutyTypeOld { get; set; }
+        public string deputyOffDutyTypeOld { get; set; }
+        public string expiryCertificateOld { get; set; }
+        public string deputyExpiryCertificateOld { get; set; }
+        public string freightGroupOld { get; set; }
+        public string deputyFreightGroupOld { get; set; }
+        public string mainDriverWechat { get; set; }
+        public string deputyDriverWechat { get; set; }
+        public int isUnusal { get; set; }
+        public string mainDriverFillAddressOld { get; set; }
+        public string deputyDriverFillAddressOld { get; set; }
+        //与bpm对接实体
+        public string deputyDutySerialNumber { get; set; }
+        public string deputyDutyBPMCreateTime { get; set; }
+        public string serviceSerialNumber { get; set; }
+        public string serviceBPMCreateTime { get; set; }
+        public string deputyServiceSerialNumber { get; set; }
+        public string deputyServiceBPMCreateTime { get; set; }
+        public string productClass { get; set; }
+        public string productClassOld { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string serviceStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deputyUnusalReason { get; set; }
+    }
+    public class ProductCategoryList
+    {
+        /// <summary>
+        /// </summary>
+        public List<ProductCategory> data { get; set; }
+    }
+    public class ProductCategory
+    {
+        /// <summary>
+        /// </summary>
+        public int value { get; set; }
+
+        /// <summary>
+        ///     主力会员
+        /// </summary>
+        public string text { get; set; }
+    }
+    public class ReturnPlaceList
+    {
+        /// <summary>
+        /// </summary>
+        public List<ReturnPlace> data { get; set; }
+    }
+    public class ReturnPlace
+    {
+        /// <summary>
+        /// </summary>
+        public int id { get; set; }
+
+        /// <summary>
+        ///     主力会员
+        /// </summary>
+        public string name { get; set; }
+    }
+    public class ResponseToken
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string tokenValue { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string jsapi_ticketStr { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string keytime { get; set; }
+        public string keytime1 { get; set; }
+    }
+}

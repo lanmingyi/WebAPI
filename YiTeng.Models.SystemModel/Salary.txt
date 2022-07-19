@@ -1,0 +1,69 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace YiTeng.Models.SystemModel
+{
+    public class GetDriverSalaryRequest
+    {
+        public string wechat { get; set; }
+        public string id { get; set; }
+        public int salaryMonth { get; set; }
+        public int page { get; set; }
+        public int size { get; set; }
+    }
+    public class GetDriverSalaryResponse
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int totalElements { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemDriverSalary> data { get; set; }
+    }
+    public class DataItemDriverSalary
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        public string salaryMonth { get; set; }
+        public string driverName { get; set; }
+        public string account { get; set; }
+        public string productName { get; set; }
+        public string plateNumber { get; set; }
+        public string employeeAttribute { get; set; }
+        public string shipmentTrackingNo { get; set; }
+        public string deliveryTime { get; set; }
+        public string lineName { get; set; }
+        public string unloadPlace { get; set; }
+        public string heavyVehicleMileage { get; set; }
+        public string lightVehicleMileage { get; set; }
+        public string realityVehicleMileage { get; set; }
+        public string doubleVehicleMieage { get; set; }
+        public string doubleTankVehicleMieage { get; set; }
+        public string unusualVehicleMieage { get; set; }
+        public string shenyangTimes { get; set; }
+        public string yantaiTimes { get; set; }
+        public string remark { get; set; }
+        public string MDIHeatingTimes { get; set; }
+        public string approvalVehicleMieage { get; set; }
+        public string waitingDays { get; set; }
+        public string zhuhaiBusiness { get; set; }
+        public string avartar { get; set; }
+        public string serviceStatus { get; set; }
+        public string heavyNoHighwayMileage { get; set; }
+        public string lightNoHighwayMileage { get; set; }
+        public string trailer { get; set; }
+        public string productSeriesNo { get; set; }
+        public string tankNo { get; set; }
+        public string TON { get; set; }
+        public string heavyOterMileage { get; set; }
+        public string lightOterMileage { get; set; }
+        public string highwaySubsidy { get; set; }
+        public string covid19Highway { get; set; }
+    }
+}

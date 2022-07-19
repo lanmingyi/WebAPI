@@ -1,0 +1,86 @@
+using System;
+using NLog;
+using YiTeng.Framework.Common.Interfaces;
+
+namespace YiTeng.Framework.Common
+{
+    /// <summary>
+    ///     日志类
+    /// </summary>
+    public static class LogHelper
+    {
+        private static readonly Logger Log = LogManager.GetLogger("");
+
+        /// <summary>
+        ///     记录错误日志
+        /// </summary>
+        /// <param name="logController"></param>
+        /// <param name="msg">日志信息</param>
+        /// <param name="exp">异常对象</param>
+        public static void LogError(this ILogable logController, object msg, Exception exp = null)
+        {
+            if (exp == null)
+                Log.Error("#" + msg);
+            else
+                Log.Error("#" + msg + "  " + exp);
+        }
+
+        /// <summary>
+        ///     记录Debug日志
+        /// </summary>
+        /// <param name="logController"></param>
+        /// <param name="msg">日志信息</param>
+        /// <param name="exp">异常对象</param>
+        public static void LogDebug(this ILogable logController, object msg, Exception exp = null)
+        {
+            if (exp == null)
+                Log.Debug("#" + msg);
+            else
+                Log.Debug("#" + msg + "  " + exp);
+        }
+
+        /// <summary>
+        ///     记录消息日志
+        /// </summary>
+        /// <param name="logController"></param>
+        /// <param name="msg">日志信息</param>
+        /// <param name="exp">异常对象</param>
+        public static void LogInfo(this ILogable logController, object msg, Exception exp = null)
+        {
+            if (exp == null)
+                Log.Info("#" + msg);
+            else
+                Log.Info("#" + msg + "  " + exp);
+        }
+
+        /// <summary>
+        ///     记录警告日志
+        /// </summary>
+        /// <param name="logController"></param>
+        /// <param name="msg">日志信息</param>
+        /// <param name="exp">异常对象</param>
+        public static void LogWarn(this ILogable logController, object msg, Exception exp = null)
+        {
+            if (exp == null)
+                Log.Warn("#" + msg);
+            else
+                Log.Warn("#" + msg + "  " + exp);
+        }
+
+        /// <summary>
+        ///     记录用户操作日志
+        /// </summary>
+        /// <param name="logController"></param>
+        /// <param name="moduleName"></param>
+        /// <param name="operation"></param>
+        /// <param name="desc"></param>
+        public static void LogUser(this IUserLogable logController, string moduleName, string operation,
+            string desc)
+        {
+            var sql =
+                //$"insert into Y_Logs(Accountid,ModuleId,Operation,[Desc],LogDateTime) values({logController.UserId},'{moduleName}','{operation}','{desc}','{DateTime.Now}');";
+                $"insert into Y_Logs(Accountid,ModuleId,Operation,[Desc],LogDateTime) values('0','{moduleName}','{operation}','{desc}','{DateTime.Now}');";
+            logController.GetIDbHelper().InsertLog(sql);
+        }
+    }
+}

@@ -1,0 +1,953 @@
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using YiTeng.Controllers.Base;
+using YiTeng.Framework.Common;
+using YiTeng.Models.SystemModel;
+using gpsdll;
+using System.Data;
+using System.IO;
+using System.Net;
+using static YiTeng.Models.SystemModel.Forklift;
+using Newtonsoft.Json;
+using System.Reflection;
+using static YiTeng.Models.SystemModel.Forklift.CheckBoxItem;
+using System.Linq;
+
+namespace YiTeng.Controllers.SystemController
+{
+    public class Forklift:SessionController
+    {
+        /// <summary>
+        /// 叉车委托列表
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("getForkliftOrderList")]
+        public IActionResult getForkliftOrderList([FromBody] GetForkliftRequest data)
+        {
+            try
+            {
+
+                var constr = GlobalVar.ConnString + GlobalVar.DbName;
+                GPSDb gdb = new GPSDb(constr);
+                var result = new GetForkliftResponse();
+                var sql3 = "";
+                //if (!gdb.QuanXianCx("fl999z", data.responseQX))
+                //{
+                //    result.resultStatus = 401;
+                //    return Ok(result);
+                //}
+                result.data = new List<DataItemForklift>();
+                var db = GetDbSqlHelper();
+                var info = new List<dynamic>();
+                if (!string.IsNullOrEmpty(data.uid))
+                {
+                    info = db.QueryDynamicList($"select * from Y_ForkliftReviewedBy where RevieweType=1 and Revieweby={data.uid}");
+                    if (info.Count >= 1)
+                        result.isApprove = 1;
+                }
+                var sql = $"select  (select RealName from ty_user where id=Y_ForkliftOrder.applyuser) as realName,(select Name from ty_unit where id= (select UnitId from ty_user where id=Y_ForkliftOrder.applyuser)) as UnitName,(select ShouJi from ty_user where id=Y_ForkliftOrder.applyuser) as mobile,case UrgentType when 0 then '普通' when 1 then '紧急' when 2 then '抢修' end as UrgentTypeStr,(select Name from Y_ForkliftDriver where id=Y_ForkliftOrder.Driver) as driverStr,(select RealName from ty_user where id=Y_ForkliftOrder.FinishUser) as finishUserStr,(select RealName from ty_user where id=Y_ForkliftOrder.ReviewedBy) as reviewedByStr,(select RealName from ty_user where id=Y_ForkliftOrder.ReviewedByClient) as ReviewedByClientStr,case OrderType when 0 then '新申请' when 1 then '续约申请' end as OrderTypeStr,* from Y_ForkliftOrder where 1 = 1 and (select unitid from ty_user where id=Y_ForkliftOrder.applyuser)=(select unitid from ty_user where Wechat='{data.wechat}')";
+                if (!string.IsNullOrEmpty(data.id))
+                    sql += $"  and id ='{data.id}'";
+                if (!string.IsNullOrEmpty(data.tab))
+                {
+                    if(data.tab == "4")
+                    {
+                        sql += $" and (OrderStatus=4 or OrderStatus=5)";
+                    }
+                    else
+                    {
+                        sql += $" and OrderStatus={data.tab}";
+                    }
+                    sql3 = $"select count(*) as count from ({sql}) t3 where t3.OrderStatus = {data.tab}";
+
+                    result.totalElements = db.ExecuteScalar(sql3);
+                }
+
+                //处理分页
+                var pagesize = 20;
+                var page = 0;
+                if (data.size > 0) pagesize = data.size;
+                if (data.page > 0) page = data.page;
+
+                string order = " applyTime asc";
+
+                sql =
+                    $"select * from ({sql}) t2 order by {order} offset {pagesize * page} rows fetch next {pagesize} rows only";
+                var list = db.QueryDynamicList(sql);
+                
+                foreach (var l in list)
+                {
+                    List<CheckBoxItem> workPlaceList = new List<CheckBoxItem>();
+                    List<CheckBoxItem> pickUpList = new List<CheckBoxItem>();
+                    List<CheckBoxItem> precautionList = new List<CheckBoxItem>();
+
+                    var di = new DataItemForklift();
+                    
+                    di.id = Convert.ToString(l.id);
+                    di.orderNO = l.OrderNO;
+                    di.applyUserName = l.realName;
+                    di.unitName = l.UnitName;
+                    di.mobile = l.mobile;
+                    di.applyTime = Convert.ToString(l.ApplyTime);
+                    di.applyEstimate = Convert.ToString(l.ApplyEstimate);
+                    di.applyRange = Convert.ToString(l.ApplyRange);
+                    di.applyMaterials = Convert.ToString(l.ApplyMaterials);
+                    di.applyStartTime = Convert.ToString(l.ApplyStartTime);
+                    di.applyContent = Convert.ToString(l.ApplyContent);
+                    di.applyWhereabouts = Convert.ToString(l.ApplyWhereabouts);
+                    di.auxiliaryTool = Convert.ToString(l.AuxiliaryTool);
+                    di.wSOtherContent = l.WSOtherContent;
+                    di.uWSOtherContent = l.UWSOtherContent;
+                    di.equipment = l.Equipment;
+                    di.urgentType = l.UrgentTypeStr;
+                    di.completeTime = Convert.ToString(l.FinishTime);
+                    di.orderType = Convert.ToString(l.OrderType);
+                    di.orderTypeStr = l.OrderTypeStr;
+                    di.originOrder = l.OriginOrder;
+                    di.driver = Convert.ToString(l.driverStr);
+                    di.driverID = Convert.ToString(l.Driver);
+                    di.forkliftNO = l.ForkliftNO;
+                    di.dispatcherRemark = l.DispatcherRemark;
+                    di.finishUser = l.finishUserStr;
+                    di.finishTime = Convert.ToString(l.FinishTime);
+                    di.reviewedBy = l.reviewedByStr;
+                    di.reviewedTime = Convert.ToString(l.ReviewedTime);
+                    di.reviewedOpinion = Convert.ToString(l.ReviewedOpinion);
+                    di.reviewedByClient = l.ReviewedByClientStr;
+                    di.reviewedTimeClient = Convert.ToString(l.ReviewedTimeClient);
+                    di.reviewedRemarkClient = Convert.ToString(l.ReviewedRemarkClient);
+                    di.remark = l.Remark;
+
+
+
+
+                    CheckBoxItem WSProductionAreas = new CheckBoxItem();
+                    if (l.WSProductionAreas == 0) {
+                        WSProductionAreas.Checked = true;
+                    }
+                    else
+                    {
+                        WSProductionAreas.Checked = false;
+                    }
+                    WSProductionAreas.column = "WSProductionAreas";
+                    WSProductionAreas.name = "生产区";
+                    workPlaceList.Add(WSProductionAreas);
+
+
+                    CheckBoxItem WSNonProductionAreas = new CheckBoxItem();
+                    if (l.WSNonProductionAreas == 0)
+                    {
+                        WSNonProductionAreas.Checked = true;
+                    }
+                    else
+                    {
+                        WSNonProductionAreas.Checked = false;
+                    }
+                    WSNonProductionAreas.column = "WSNonProductionAreas";
+                    WSNonProductionAreas.name = "非生产区";
+                    workPlaceList.Add(WSNonProductionAreas);
+
+                    CheckBoxItem WSCombustibles = new CheckBoxItem();
+                    if (l.WSCombustibles == 0)
+                    {
+                        WSCombustibles.Checked = true;
+                    }
+                    else
+                    {
+                        WSCombustibles.Checked = false;
+                    }
+                    WSCombustibles.column = "WSCombustibles";
+                    WSCombustibles.name = "易燃易爆物";
+                    workPlaceList.Add(WSCombustibles);
+
+                    CheckBoxItem WSToxic = new CheckBoxItem();
+                    if (l.WSToxic == 0)
+                    {
+                        WSToxic.Checked = true;
+                    }
+                    else
+                    {
+                        WSToxic.Checked = false;
+                    }
+                    WSToxic.column = "WSToxic";
+                    WSToxic.name = "有毒物";
+                    workPlaceList.Add(WSToxic);
+
+                    CheckBoxItem WSInertia = new CheckBoxItem();
+                    if (l.WSInertia == 0)
+                    {
+                        WSInertia.Checked = true;
+                    }
+                    else
+                    {
+                        WSInertia.Checked = false;
+                    }
+                    WSInertia.column = "WSInertia";
+                    WSInertia.name = "惰性";
+                    workPlaceList.Add(WSInertia);
+
+                    CheckBoxItem WSRadiation = new CheckBoxItem();
+                    if (l.WSRadiation == 0)
+                    {
+                        WSRadiation.Checked = true;
+                    }
+                    else
+                    {
+                        WSRadiation.Checked = false;
+                    }
+                    WSRadiation.column = "WSRadiation";
+                    WSRadiation.name = "放射物";
+                    workPlaceList.Add(WSRadiation);
+
+                    CheckBoxItem WSCorrosives = new CheckBoxItem();
+                    if (l.WSCorrosives == 0)
+                    {
+                        WSCorrosives.Checked = true;
+                    }
+                    else
+                    {
+                        WSCorrosives.Checked = false;
+                    }
+                    WSCorrosives.column = "WSCorrosives";
+                    WSCorrosives.name = "腐蚀物";
+                    workPlaceList.Add(WSCorrosives);
+
+                    CheckBoxItem WSDust = new CheckBoxItem();
+                    if (l.WSDust == 0)
+                    {
+                        WSDust.Checked = true;
+                    }
+                    else
+                    {
+                        WSDust.Checked = false;
+                    }
+                    WSDust.column = "WSDust";
+                    WSDust.name = "粉尘";
+                    workPlaceList.Add(WSDust);
+
+                    CheckBoxItem WSLeakage = new CheckBoxItem();
+                    if (l.WSLeakage == 0)
+                    {
+                        WSLeakage.Checked = true;
+                    }
+                    else
+                    {
+                        WSLeakage.Checked = false;
+                    }
+                    WSLeakage.column = "WSLeakage";
+                    WSLeakage.name = "泄露";
+                    workPlaceList.Add(WSLeakage);
+
+                    CheckBoxItem WSNoise = new CheckBoxItem();
+                    if (l.WSNoise == 0)
+                    {
+                        WSNoise.Checked = true;
+                    }
+                    else
+                    {
+                        WSNoise.Checked = false;
+                    }
+                    WSNoise.column = "WSNoise";
+                    WSNoise.name = "噪音";
+                    workPlaceList.Add(WSNoise);
+
+                    CheckBoxItem WSFalling = new CheckBoxItem();
+                    if (l.WSFalling == 0)
+                    {
+                        WSFalling.Checked = true;
+                    }
+                    else
+                    {
+                        WSFalling.Checked = false;
+                    }
+                    WSFalling.column = "WSFalling";
+                    WSFalling.name = "坠物";
+                    workPlaceList.Add(WSFalling);
+
+                    CheckBoxItem WSCrossOperation = new CheckBoxItem();
+                    if (l.WSCrossOperation == 0)
+                    {
+                        WSCrossOperation.Checked = true;
+                    }
+                    else
+                    {
+                        WSCrossOperation.Checked = false;
+                    }
+                    WSCrossOperation.column = "WSCrossOperation";
+                    WSCrossOperation.name = "交叉作业";
+                    workPlaceList.Add(WSCrossOperation);
+
+                    CheckBoxItem WSPoorLighting = new CheckBoxItem();
+                    if (l.WSPoorLighting == 0)
+                    {
+                        WSPoorLighting.Checked = true;
+                    }
+                    else
+                    {
+                        WSPoorLighting.Checked = false;
+                    }
+                    WSPoorLighting.column = "WSPoorLighting";
+                    WSPoorLighting.name = "照明不好";
+                    workPlaceList.Add(WSPoorLighting);
+
+                    CheckBoxItem WSAdverseWeather = new CheckBoxItem();
+                    if (l.WSAdverseWeather == 0)
+                    {
+                        WSAdverseWeather.Checked = true;
+                    }
+                    else
+                    {
+                        WSAdverseWeather.Checked = false;
+                    }
+                    WSAdverseWeather.column = "WSAdverseWeather";
+                    WSAdverseWeather.name = "不利天气";
+                    workPlaceList.Add(WSAdverseWeather);
+
+
+                    CheckBoxItem WSOther = new CheckBoxItem();
+                    if (l.WSOther == 0)
+                    {
+                        WSOther.Checked = true;
+                    }
+                    else
+                    {
+                        WSOther.Checked = false;
+                    }
+                    WSOther.column = "WSOther";
+                    WSOther.name = "其他";
+
+                    workPlaceList.Add(WSOther);
+                    di.workPlace = new string[workPlaceList.Count];
+                    for (int i = 0; i < workPlaceList.Count; i++)
+                    {
+                        if(workPlaceList[i].Checked == true)
+                           di.workPlace[i] = workPlaceList[i].column;
+                    }
+                    di.workPlace = di.workPlace.Where(s => !string.IsNullOrEmpty(s)).ToArray();
+
+                    di.workPlaceList = workPlaceList;
+
+                    CheckBoxItem UWSCombustibles = new CheckBoxItem();
+                    if (l.UWSCombustibles == 0)
+                    {
+                        UWSCombustibles.Checked = true;
+                    }
+                    else
+                    {
+                        UWSCombustibles.Checked = false;
+                    }
+                    UWSCombustibles.column = "UWSCombustibles";
+                    UWSCombustibles.name = "易燃易爆炸物";
+                    pickUpList.Add(UWSCombustibles);
+
+
+
+                    CheckBoxItem UWSToxic = new CheckBoxItem();
+                    if (l.UWSToxic == 0)
+                    {
+                        UWSToxic.Checked = true;
+                    }
+                    else
+                    {
+                        UWSToxic.Checked = false;
+                    }
+                    UWSToxic.column = "UWSToxic";
+                    UWSToxic.name = "有毒物";
+                    pickUpList.Add(UWSToxic);
+
+
+                    CheckBoxItem UWSInertia = new CheckBoxItem();
+                    if (l.UWSInertia == 0)
+                    {
+                        UWSInertia.Checked = true;
+                    }
+                    else
+                    {
+                        UWSInertia.Checked = false;
+                    }
+                    UWSInertia.column = "UWSInertia";
+                    UWSInertia.name = "惰性";
+                    pickUpList.Add(UWSInertia);
+
+
+                    CheckBoxItem UWSRadiation = new CheckBoxItem();
+                    if (l.UWSRadiation == 0)
+                    {
+                        UWSRadiation.Checked = true;
+                    }
+                    else
+                    {
+                        UWSRadiation.Checked = false;
+                    }
+                    UWSRadiation.column = "UWSRadiation";
+                    UWSRadiation.name = "放射物";
+                    pickUpList.Add(UWSRadiation);
+
+
+                    CheckBoxItem UWSCorrosives = new CheckBoxItem();
+                    if (l.UWSCorrosives == 0)
+                    {
+                        UWSCorrosives.Checked = true;
+                    }
+                    else
+                    {
+                        UWSCorrosives.Checked = false;
+                    }
+                    UWSCorrosives.column = "UWSCorrosives";
+                    UWSCorrosives.name = "腐蚀物";
+                    pickUpList.Add(UWSCorrosives);
+                     
+
+                    CheckBoxItem UWSDust = new CheckBoxItem();
+                    if (l.UWSDust == 0)
+                    {
+                        UWSDust.Checked = true;
+                    }
+                    else
+                    {
+                        UWSDust.Checked = false;
+                    }
+                    UWSDust.column = "UWSDust";
+                    UWSDust.name = "粉尘";
+                    pickUpList.Add(UWSDust);
+
+
+                    CheckBoxItem UWSLeakage = new CheckBoxItem();
+                    if (l.UWSLeakage == 0)
+                    {
+                        UWSLeakage.Checked = true;
+                    }
+                    else
+                    {
+                        UWSLeakage.Checked = false;
+                    }
+                    UWSLeakage.column = "UWSLeakage";
+                    UWSLeakage.name = "泄露";
+                    pickUpList.Add(UWSLeakage);
+
+
+                    CheckBoxItem UWSSparks = new CheckBoxItem();
+                    if (l.UWSSparks == 0)
+                    {
+                        UWSSparks.Checked = true;
+                    }
+                    else
+                    {
+                        UWSSparks.Checked = false;
+                    }
+                    UWSSparks.column = "UWSSparks";
+                    UWSSparks.name = "产生火花";
+                    pickUpList.Add(UWSSparks);
+
+
+                    CheckBoxItem UWSNoise = new CheckBoxItem();
+                    if (l.UWSNoise == 0)
+                    {
+                        UWSNoise.Checked = true;
+                    }
+                    else
+                    {
+                        UWSNoise.Checked = false;
+                    }
+                    UWSNoise.column = "UWSNoise";
+                    UWSNoise.name = "噪音";
+                    pickUpList.Add(UWSNoise);
+
+                    CheckBoxItem UWSFalling = new CheckBoxItem();
+                    if (l.UWSFalling == 0)
+                    {
+                        UWSFalling.Checked = true;
+                    }
+                    else
+                    {
+                        UWSFalling.Checked = false;
+                    }
+                    UWSFalling.column = "UWSFalling";
+                    UWSFalling.name = "坠物";
+                    pickUpList.Add(UWSFalling);
+
+
+                    CheckBoxItem UWSCrossOperation = new CheckBoxItem();
+                    if (l.UWSCrossOperation == 0)
+                    {
+                        UWSCrossOperation.Checked = true;
+                    }
+                    else
+                    {
+                        UWSCrossOperation.Checked = false;
+                    }
+                    UWSCrossOperation.column = "UWSCrossOperation";
+                    UWSCrossOperation.name = "交叉作业";
+                    pickUpList.Add(UWSCrossOperation);
+
+
+                    CheckBoxItem UWSPoorLighting = new CheckBoxItem();
+                    if (l.UWSPoorLighting == 0)
+                    {
+                        UWSPoorLighting.Checked = true;
+                    }
+                    else
+                    {
+                        UWSPoorLighting.Checked = false;
+                    }
+                    UWSPoorLighting.column = "UWSPoorLighting";
+                    UWSPoorLighting.name = "照明不好";
+                    pickUpList.Add(UWSPoorLighting);
+
+
+                    CheckBoxItem UWSAdverseWeather = new CheckBoxItem();
+                    if (l.UWSAdverseWeather == 0)
+                    {
+                        UWSAdverseWeather.Checked = true;
+                    }
+                    else
+                    {
+                        UWSAdverseWeather.Checked = false;
+                    }
+                    UWSAdverseWeather.column = "UWSAdverseWeather";
+                    UWSAdverseWeather.name = "不利天气";
+                    pickUpList.Add(UWSAdverseWeather);
+
+
+                    CheckBoxItem UWSFragile = new CheckBoxItem();
+                    if (l.UWSFragile == 0)
+                    {
+                        UWSFragile.Checked = true;
+                    }
+                    else
+                    {
+                        UWSFragile.Checked = false;
+                    }
+                    UWSFragile.column = "UWSFragile";
+                    UWSFragile.name = "易碎品";
+                    pickUpList.Add(UWSFragile);
+
+
+                    CheckBoxItem UWSShortBoard = new CheckBoxItem();
+                    if (l.UWSShortBoard == 0)
+                    {
+                        UWSShortBoard.Checked = true;
+                    }
+                    else
+                    {
+                        UWSShortBoard.Checked = false;
+                    }
+                    UWSShortBoard.column = "UWSShortBoard";
+                    UWSShortBoard.name = "叉板短";
+                    pickUpList.Add(UWSShortBoard);
+
+
+                    CheckBoxItem UWSOther = new CheckBoxItem();
+                    if (l.UWSOther == 0)
+                    {
+                        UWSOther.Checked = true;
+                    }
+                    else
+                    {
+                        UWSOther.Checked = false;
+                    }
+                    UWSOther.column = "UWSOther";
+                    UWSOther.name = "其他";
+                    pickUpList.Add(UWSOther);
+                    di.forkLiftPickUp = new string[pickUpList.Count];
+                    for (int i = 0; i < pickUpList.Count; i++)
+                    {
+                        if (pickUpList[i].Checked == true)
+                            di.forkLiftPickUp[i] = pickUpList[i].column;
+                    }
+                    di.forkLiftPickUp = di.forkLiftPickUp.Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                    di.pickUpList = pickUpList;
+
+
+                    CheckBoxItem AntiPoisonRespirator = new CheckBoxItem();
+                    if (l.AntiPoisonRespirator == 0)
+                    {
+                        AntiPoisonRespirator.Checked = true;
+                    }
+                    else
+                    {
+                        AntiPoisonRespirator.Checked = false;
+                    }
+                    AntiPoisonRespirator.column = "AntiPoisonRespirator";
+                    AntiPoisonRespirator.name = "防毒口罩";
+                    precautionList.Add(AntiPoisonRespirator);
+
+                    CheckBoxItem Earplugs = new CheckBoxItem();
+                    if (l.Earplugs == 0)
+                    {
+                        Earplugs.Checked = true;
+                    }
+                    else
+                    {
+                        Earplugs.Checked = false;
+                    }
+                    Earplugs.column = "Earplugs";
+                    Earplugs.name = "耳塞/耳罩";
+                    precautionList.Add(Earplugs);
+
+                    CheckBoxItem FireproofCover = new CheckBoxItem();
+                    if (l.FireproofCover == 0)
+                    {
+                        FireproofCover.Checked = true;
+                    }
+                    else
+                    {
+                        FireproofCover.Checked = false;
+                    }
+                    FireproofCover.column = "FireproofCover";
+                    FireproofCover.name = "防火罩";
+                    precautionList.Add(FireproofCover);
+
+                    CheckBoxItem SealedStorage = new CheckBoxItem();
+                    if (l.SealedStorage == 0)
+                    {
+                        SealedStorage.Checked = true;
+                    }
+                    else
+                    {
+                        SealedStorage.Checked = false;
+                    }
+                    SealedStorage.column = "SealedStorage";
+                    SealedStorage.name = "密封存放";
+                    precautionList.Add(SealedStorage);
+
+                    CheckBoxItem Monitoring = new CheckBoxItem();
+                    if (l.Monitoring == 0)
+                    {
+                        Monitoring.Checked = true;
+                    }
+                    else
+                    {
+                        Monitoring.Checked = false;
+                    }
+                    Monitoring.column = "Monitoring";
+                    Monitoring.name = "工艺人员监护";
+                    precautionList.Add(Monitoring);
+
+                    CheckBoxItem QuantityControl = new CheckBoxItem();
+                    if (l.QuantityControl == 0)
+                    {
+                        QuantityControl.Checked = true;
+                    }
+                    else
+                    {
+                        QuantityControl.Checked = false;
+                    }
+                    QuantityControl.column = "QuantityControl";
+                    QuantityControl.name = "数量控制";
+                    precautionList.Add(QuantityControl);
+
+                    CheckBoxItem ReasonableBinding = new CheckBoxItem();
+                    if (l.ReasonableBinding == 0)
+                    {
+                        ReasonableBinding.Checked = true;
+                    }
+                    else
+                    {
+                        ReasonableBinding.Checked = false;
+                    }
+                    ReasonableBinding.column = "ReasonableBinding";
+                    ReasonableBinding.name = "合理捆绑";
+                    precautionList.Add(ReasonableBinding);
+
+                    CheckBoxItem Cordon = new CheckBoxItem();
+                    if (l.Cordon == 0)
+                    {
+                        Cordon.Checked = true;
+                    }
+                    else
+                    {
+                        Cordon.Checked = false;
+                    }
+                    Cordon.column = "Cordon";
+                    Cordon.name = "拉警戒线";
+                    precautionList.Add(Cordon);
+
+                    CheckBoxItem NoticeBoard = new CheckBoxItem();
+                    if (l.NoticeBoard == 0)
+                    {
+                        NoticeBoard.Checked = true;
+                    }
+                    else
+                    {
+                        NoticeBoard.Checked = false;
+                    }
+                    NoticeBoard.column = "NoticeBoard";
+                    NoticeBoard.name = "挂工作告知牌";
+                    precautionList.Add(NoticeBoard);
+
+                    CheckBoxItem ForkPlate = new CheckBoxItem();
+                    if (l.ForkPlate == 0)
+                    {
+                        ForkPlate.Checked = true;
+                    }
+                    else
+                    {
+                        ForkPlate.Checked = false;
+                    }
+                    ForkPlate.column = "ForkPlate";
+                    ForkPlate.name = "放叉板";
+                    precautionList.Add(ForkPlate);
+
+                    CheckBoxItem SafetyBelt = new CheckBoxItem();
+                    if (l.SafetyBelt == 0)
+                    {
+                        SafetyBelt.Checked = true;
+                    }
+                    else
+                    {
+                        SafetyBelt.Checked = false;
+                    }
+                    SafetyBelt.column = "SafetyBelt";
+                    SafetyBelt.name = "安全带";
+                    precautionList.Add(SafetyBelt);
+
+                    CheckBoxItem Quarantine = new CheckBoxItem();
+                    if (l.Quarantine == 0)
+                    {
+                        Quarantine.Checked = true;
+                    }
+                    else
+                    {
+                        Quarantine.Checked = false;
+                    }
+                    Quarantine.column = "Quarantine";
+                    Quarantine.name = "隔离";
+                    precautionList.Add(Quarantine);
+
+                    CheckBoxItem IFEquipment = new CheckBoxItem();
+                    if (l.IFEquipment == 0)
+                    {
+                        IFEquipment.Checked = true;
+                    }
+                    else
+                    {
+                        IFEquipment.Checked = false;
+                    }
+                    IFEquipment.column = "IFEquipment";
+                    IFEquipment.name = "其他专用防护用品(有各工序提供)";
+                    precautionList.Add(IFEquipment);
+                    di.precaution = new string[precautionList.Count];
+                    for (int i = 0; i < precautionList.Count; i++)
+                    {
+                        if (precautionList[i].Checked == true)
+                            di.precaution[i] = precautionList[i].column;
+                    }
+                    di.precaution = di.precaution.Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                    di.precautionList = precautionList;
+
+                    result.data.Add(di);
+
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+
+        }
+        /// <summary>
+        /// 新增叉车委托
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("insertForkliftOrderDetails")]
+        public IActionResult insertForkliftOrderDetails([FromBody] DataItemForkliftDetails data)
+        {
+            try
+            {
+                var constr = GlobalVar.ConnString + GlobalVar.DbName;
+                GPSDb gdb = new GPSDb(constr);
+                var result = new GetForkliftResponse();
+                var db = GetDbSqlHelper();
+                var sqls = new List<string>();
+                var OrderNO = getForkliftNowCount();
+                PropertyInfo[] propertys = data.GetType().GetProperties();
+                var result2 = new GetOrderStatus();
+                if (!string.IsNullOrEmpty(data.id))
+                {
+                    var sql5 = $"select OrderStatus from Y_ForkliftOrder where id={data.id}";
+                    result2 = db.QueryOne<GetOrderStatus>(sql5);
+                }
+                foreach (var property in propertys)
+                {
+                    if (data.workPlace != null && data.workPlace.Length > 0)
+                    {
+                        for (int i = 0; i < data.workPlace.Length; i++)
+                        {
+                            if (property.Name.Equals(data.workPlace[i]))
+                            {
+                                property.SetValue(data, 0, null);
+                            }
+                        }
+                    }
+                    if (data.forkLiftPickUp != null && data.forkLiftPickUp.Length > 0)
+                    {
+                        for (int i = 0; i < data.forkLiftPickUp.Length; i++)
+                        {
+                            if (property.Name.Equals(data.forkLiftPickUp[i]))
+                            {
+                                property.SetValue(data, 0, null);
+                            }
+                        }
+                    }
+
+                    if (data.precaution != null && data.precaution.Length > 0)
+                    {
+                        for (int i = 0; i < data.precaution.Length; i++)
+                        {
+                            if (property.Name.Equals(data.precaution[i]))
+                            {
+                                property.SetValue(data, 0, null);
+                            }
+                        }
+                    }
+
+
+                }
+                //修改
+                if (data.type.Equals("1"))
+                {
+                    if(result2.OrderStatus != 0)
+                    {
+                        result.resultStatus = 201;
+                    }
+                    else
+                    {
+                        string sql = $"update Y_ForkliftOrder set ApplyUser='{data.applyUser}',ApplyTime='{DateTime.Now}',ApplyRange='{data.applyRange}',ApplyEstimate='{data.applyEstimate}',ApplyMaterials='{data.applyMaterials}',ApplyStartTime='{data.applyStartTime}',ApplyContent='{data.applyContent}',ApplyWhereabouts='{data.applyWhereabouts}',AuxiliaryTool='{data.auxiliaryTool}',WSProductionAreas={data.WSProductionAreas},WSNonProductionAreas={data.WSNonProductionAreas},WSCombustibles={data.WSCombustibles},WSToxic={data.WSToxic},WSInertia={data.WSInertia},WSRadiation={data.WSRadiation},WSCorrosives={data.WSCorrosives},WSDust={data.WSDust},WSLeakage={data.WSLeakage},WSNoise={data.WSNoise},WSFalling={data.WSFalling},WSCrossOperation={data.WSCrossOperation},WSPoorLighting={data.WSPoorLighting},WSAdverseWeather={data.WSAdverseWeather},WSOther={data.WSOther},wSOtherContent='{data.wSOtherContent}',UWSCombustibles={data.UWSCombustibles},UWSToxic={data.UWSToxic},UWSInertia={data.UWSInertia},UWSRadiation={data.UWSRadiation},UWSCorrosives={data.UWSCorrosives},UWSDust={data.UWSDust},UWSLeakage={data.UWSLeakage},UWSSparks={data.UWSSparks},UWSNoise={data.UWSNoise},UWSFalling={data.UWSFalling},UWSCrossOperation={data.UWSCrossOperation},UWSPoorLighting={data.UWSPoorLighting},UWSAdverseWeather={data.UWSAdverseWeather},UWSFragile={data.UWSFragile},UWSShortBoard={data.UWSShortBoard},UWSOther={data.UWSOther},uWSOtherContent='{data.uWSOtherContent}',AntiPoisonRespirator={data.AntiPoisonRespirator},Earplugs={data.Earplugs},FireproofCover={data.FireproofCover},SealedStorage={data.SealedStorage},Monitoring={data.Monitoring},QuantityControl={data.QuantityControl},ReasonableBinding={data.ReasonableBinding},Cordon={data.Cordon},NoticeBoard={data.NoticeBoard},ForkPlate={data.ForkPlate},SafetyBelt={data.SafetyBelt},Quarantine={data.Quarantine},IFEquipment={data.IFEquipment},equipment='{data.equipment}',OrderStatus={data.OrderStatus},UrgentType={data.UrgentType},Remark='{data.remark}',modifyuser={data.modifyuser},modifytime='{DateTime.Now}' where id = {data.id}";
+                        db.Execute(sql);
+                        result.resultStatus = 200;
+                    }
+                }
+                //审核
+                else if (data.type.Equals("2"))
+                {
+                    if (result2.OrderStatus != 6)
+                    {
+                        result.resultStatus = 201;
+                    }
+                    else
+                    {
+                        string sql = $"update Y_ForkliftOrder set OrderStatus = '{data.OrderStatus}',ReviewedByClient={data.ReviewedBy},ReviewedTimeClient='{DateTime.Now.ToString()}',ReviewedRemarkClient='{data.ReviewedOpinion}',ReviewedClientStatus={data.reviewedClientStatus} where id = {data.id}";
+                        db.Execute(sql);
+                        result.resultStatus = 200;
+                    }
+                    //完成
+                } else if (data.type.Equals("3")) {
+                    if (result2.OrderStatus != 3)
+                    {
+                        result.resultStatus = 201;
+                    }
+                    else
+                    {
+                        string sql = $"update Y_ForkliftOrder set OrderStatus = '{data.OrderStatus}',FinishUser={data.FinishUser},FinishTime='{data.FinishTime}',AttitudeSatisfaction='{data.AttitudeSatisfaction}',WorkSatisfaction='{data.WorkSatisfaction}',SatisfactionReason='{data.SatisfactionReason}',CompleteAddTime='{DateTime.Now}' where id = {data.id}";
+                        sqls.Add(sql);
+                        db.ExecuteTransWithSubTableReturnOid(sqls);
+                        result.resultStatus = 200;
+                    }
+                }
+                //提交
+                else if (data.type.Equals("4"))
+                {
+                    if (result2.OrderStatus != 0)
+                    {
+                        result.resultStatus = 201;
+                    }
+                    else
+                    {
+                        string sql = $"update Y_ForkliftOrder set OrderStatus = '{data.OrderStatus}',modifyuser={data.modifyuser},modifytime='{DateTime.Now.ToString()}' where id = {data.id}";
+                        db.Execute(sql);
+                        result.resultStatus = 200;
+                    }
+                    //完成
+                }
+                else
+                {
+                        var sql = $"insert into Y_ForkliftOrder(OrderNO,ApplyUser,ApplyTime,ApplyRange,ApplyEstimate,ApplyMaterials,ApplyStartTime,ApplyContent,ApplyWhereabouts,AuxiliaryTool,WSProductionAreas,WSNonProductionAreas,WSCombustibles,WSToxic,WSInertia,WSRadiation,WSCorrosives,WSDust,WSLeakage,WSNoise,WSFalling,WSCrossOperation,WSPoorLighting,WSAdverseWeather,WSOther,WSOtherContent,UWSCombustibles,UWSToxic,UWSInertia,UWSRadiation,UWSCorrosives,UWSDust,UWSLeakage,UWSSparks,UWSNoise,UWSFalling,UWSCrossOperation,UWSPoorLighting,UWSAdverseWeather,UWSFragile,UWSShortBoard,UWSOther,uWSOtherContent,AntiPoisonRespirator,Earplugs,FireproofCover,SealedStorage,Monitoring,QuantityControl,ReasonableBinding,Cordon,NoticeBoard,ForkPlate,SafetyBelt,Quarantine,IFEquipment,Equipment,OrderStatus,UrgentType,Driver,ForkliftNO,Dispatcher,DispatcherRemark,adduser,addtime,modifyuser,modifytime,OrderType,OriginOrder,Remark) values('{OrderNO}','{data.applyUser}','{DateTime.Now}','{data.applyRange}','{data.applyEstimate}','{data.applyMaterials}','{data.applyStartTime}','{data.applyContent}','{data.applyWhereabouts}','{data.auxiliaryTool}',{data.WSProductionAreas},{data.WSNonProductionAreas},{data.WSCombustibles},{data.WSToxic},{data.WSInertia},{data.WSRadiation},{data.WSCorrosives},{data.WSDust},{data.WSLeakage},{data.WSNoise},{data.WSFalling},{data.WSCrossOperation},{data.WSPoorLighting},{data.WSAdverseWeather},{data.WSOther},'{data.wSOtherContent}',{data.UWSCombustibles},{data.UWSToxic},{data.UWSInertia},{data.UWSRadiation},{data.UWSCorrosives},{data.UWSDust},{data.UWSLeakage},{data.UWSSparks},{data.UWSNoise},{data.UWSFalling},{data.UWSCrossOperation},{data.UWSPoorLighting},{data.UWSAdverseWeather},{data.UWSFragile},{data.UWSShortBoard},{data.UWSOther},'{data.uWSOtherContent}',{data.AntiPoisonRespirator},{data.Earplugs},{data.FireproofCover},{data.SealedStorage},{data.Monitoring},{data.QuantityControl},{data.ReasonableBinding},{data.Cordon},{data.NoticeBoard},{data.ForkPlate},{data.SafetyBelt},{data.Quarantine},{data.IFEquipment},'{data.equipment}',{data.OrderStatus},{data.UrgentType},{data.Driver},'{data.ForkliftNO}',{data.Dispatcher},'{data.DispatcherRemark}',{data.adduser},'{data.addtime}',{data.modifyuser},'{data.modifytime}',{data.orderType},'{data.OriginOrder}','{data.remark}')";
+                        db.Execute(sql);
+                        result.resultStatus = 200;
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+
+        }
+        /**
+         * 查询tab相应数量
+         */
+        [HttpPost]
+        [Route("getForkOrderCount")]
+        public IActionResult getForkOrderCount([FromBody] GetForkliftRequest data)
+        {
+            try
+            {
+                var result = new ForkCount();
+
+                var db = GetDbSqlHelper();
+                var sql = $"select  (select RealName from ty_user where Wechat='{data.wechat}') as realName,case UrgentType when 0 then '普通' when 1 then '紧急' when 2 then '抢修' end as UrgentTypeStr,* from Y_ForkliftOrder where 1 = 1 and (select unitid from ty_user where id=Y_ForkliftOrder.applyuser)=(select unitid from ty_user where Wechat='{data.wechat}')";
+                    //未派车、处理中（未审核and紧急状态不是抢修
+                var sql1 = $" and OrderStatus=1";
+                var sql2 = $" and OrderStatus=6";
+                var sql3 = $" and OrderStatus=0";
+                var sql4 = $" and OrderStatus=3";
+                var sql9 = $" and OrderStatus=4 and OrderStatus=5";
+                var sql11 = $" and OrderStatus=2";
+                //未派车
+                var sql5 = $"select count(*) as count from ({sql + sql3}) t3";
+                //处理中
+                var sql6 = $"select count(*) as count from ({sql + sql1}) t3";
+                //待审批
+                var sql7 = $"select count(*) as count from ({sql + sql2}) t3";
+                //已派车
+                var sql8 = $"select count(*) as count from ({sql + sql4}) t3";
+                //已完成
+                var sql10 = $"select count(*) as count from ({sql + sql9}) t3";
+                //已驳回
+                var sql12 = $"select count(*) as count from ({sql + sql11}) t3";
+
+                result.code = 200;
+                result.data = new forkCount();
+                result.data.tabNO1 = db.ExecuteScalar(sql5);
+                result.data.tabNO2 = db.ExecuteScalar(sql6);
+                result.data.tabNO3 = db.ExecuteScalar(sql7);
+                result.data.tabNO4 = db.ExecuteScalar(sql8);
+                result.data.tabNO5 = db.ExecuteScalar(sql10);
+                result.data.tabNO6 = db.ExecuteScalar(sql12);
+
+
+
+                //result = db.QueryOne<DataItemWorkManageDetailsCheckDetails>(sql);
+                this.LogUser("getForkOrderCount", "HttpPost", " 查询tab相应数量");
+                return Ok(result);
+
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+        public string getForkliftNowCount()
+        {
+            var db = GetDbSqlHelper();
+            string nowDay = DateTime.Now.ToString("yyyy-MM-dd");
+            string nextDay = DateTime.Now.AddDays(1).ToString("yyyy-MM-dd");
+            var sql = $"select count(*) from Y_ForkliftOrder  where ApplyTime >= '{nowDay}' and ApplyTime < '{nextDay}'";
+            int count = db.ExecuteScalar(sql);
+            return "FK" + DateTime.Now.ToString("yyyyMMdd") + Convert.ToString(count + 1).ToString().PadLeft(5, '0');
+        }
+    }
+}

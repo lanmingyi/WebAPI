@@ -1,0 +1,1581 @@
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using YiTeng.Controllers.Base;
+using YiTeng.Framework.Common;
+using YiTeng.Models.SystemModel;
+using gpsdll;
+using System.Data;
+using System.IO;
+using System.Net;
+using System.Security.Cryptography;
+using BPM.Client;
+
+namespace YiTeng.Controllers.SystemController
+{
+    public class ServiceTicket : SessionController
+    {
+        ///<param name="wechat"></param>
+        ///<summary>
+        ///查询用户身份证号
+        /// </summary>
+        /// <returns>string ids</returns>
+        public string GetIdentity(string wechat)
+        {
+            responseIdentity result;
+            var db = GetDbSqlHelper();
+            var sql = "";
+            if (!string.IsNullOrEmpty(wechat))
+            {
+                sql = $"select ETTP_IDENTIFICATION_NO from Y_Driver where Wechat='{wechat}'";
+                result = db.QueryOne<responseIdentity>(sql);
+            }
+            else
+            {
+                result = null;
+            }
+            return result.ETTP_IDENTIFICATION_NO;
+        }
+        ///<param name="wechat"></param>
+        ///<summary>
+        ///判断是否是主驾
+        /// </summary>
+        /// <returns>1：主驾 2：副驾</returns>
+        public int IsMainDriver(string wechat)
+        {
+            responseDriverIdentity result;
+            var identity = GetIdentity(wechat);
+            var db = GetDbSqlHelper();
+            var sql = "";
+            if(!string.IsNullOrEmpty(identity))
+            {
+                sql = $"select MainDriverCard,DeputyDriverCard from Y_ServiceTicket where MainDriverCard='{identity}' or DeputyDriverCard='{identity}'";
+                result = db.QueryOne<responseDriverIdentity>(sql);
+            }
+            else
+            {
+                result = null;
+            }
+            if (result.MainDriverCard == identity)
+                result.isMainDriver = 1;
+            else if (result.DeputyDriverCard == identity)
+                result.isMainDriver = 2;
+            return result.isMainDriver;
+        }
+        ///<param name="serviceID"></param>
+        ///<summary>
+        ///判断是否双驾
+        /// </summary>
+        /// <returns>1：双驾 2：单驾</returns>
+        public int IsDoubleDriver(int id)
+        {
+            responseIsDoubleDriver result;
+            var db = GetDbSqlHelper();
+            var sql = "";
+            if (!string.IsNullOrEmpty(Convert.ToString(id)))
+            {
+                sql = $"select DeputyDriverCard from Y_ServiceTicket where id={id}";
+                result = db.QueryOne<responseIsDoubleDriver>(sql);
+            }
+            else
+            {
+                result = null;
+            }
+            if (!string.IsNullOrEmpty(result.DeputyDriverCard))
+                result.isDoubleDriver = 1;
+            else
+                result.isDoubleDriver = 2;
+            return result.isDoubleDriver;
+        }
+        ///<param name="DutySerialNumber"></param>
+        ///<summary>
+        ///查询bpmTaskID
+        /// </summary>
+        /// <returns>string ids</returns>
+        public responseBPMInfo GetTaskID(string serialNumber, int isUnusal, string duty, int state)
+        {
+            responseBPMInfo result;
+            var db = BPMGetDbSqlHelper();
+            var sql = "";
+            if (!string.IsNullOrEmpty(serialNumber))
+            {
+                //if (duty == "休班/请假")
+                //{
+
+                //}
+                //else
+                //{
+                if (state == 0)
+                {
+
+
+                    sql = $"select a.TaskID, ltrim(rtrim(b.state)) as   unusalSatus ,b.ParentTaskID  as parentID,(select  ltrim(rtrim(c.state)) from  BPMInstTasks c where c.taskid=b.ParentTaskID) as ParentSatus,isnull((select c.ParentTaskID from BPMInstTasks c where  c.TaskID = b.ParentTaskID),0) as qjdID,isnull((select  ltrim(rtrim(c.state)) from  BPMInstTasks c where c.taskid=(select c.ParentTaskID from BPMInstTasks c where  c.TaskID = b.ParentTaskID)),'') as qjdSatus  from Y_ServiceTicketUnusual a left  join BPMInstTasks b on a.TaskID = b.TaskID  where ServiceSerialNumber ='{serialNumber}'";
+
+                }
+                else
+                {
+                    sql = $"select a.TaskID,ltrim(rtrim(b.state)) as   unusalSatus ,b.ParentTaskID  as parentID,(select  ltrim(rtrim(c.state)) from  BPMInstTasks c where c.taskid=b.ParentTaskID) as ParentSatus,0 as qjdID,'' as qjdSatus   from Y_xiubanqingjiasiji a left  join BPMInstTasks b on a.TaskID = b.TaskID where liushuihao ='{serialNumber}'";
+                }
+                //}
+                result = db.QueryOne<responseBPMInfo>(sql);
+            }
+            else
+            {
+                result = null;
+            }
+            return result;
+        }
+        ///<param name="serviceID"></param>
+        ///<summary>
+        ///查询大类名称
+        /// </summary>
+        /// <returns>string ids</returns>
+        public string GetProductClassName(string serviceID,string proClass)
+        {
+            responseProductClassName result;
+            var db = GetDbSqlHelper();
+            var sql = "";
+            if (!string.IsNullOrEmpty(serviceID))
+            {
+                sql = $"select productName = STUFF(( SELECT ',' + Name FROM   ty_crm_ChangPinLx WHERE  PATINDEX('%,' + RTRIM(id) + ',%',',' + '{proClass}' + ',')>0 ORDER BY PATINDEX('%,' + RTRIM(id) + ',%',',' + '{proClass}' + ',') FOR XML PATH('')), 1, 1, '')";
+                result = db.QueryOne<responseProductClassName>(sql);
+            }
+            else
+            {
+                result = null;
+            }
+            return result.productName;
+        }
+        /// <summary>
+        ///     查询未完成/已完成服务单列表
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("GetServiceTicket")]
+        public IActionResult GetServiceTicket([FromBody] GetServiceTicketRequest data)
+        {
+            try
+            {
+                var constr = GlobalVar.ConnString + GlobalVar.DbName;
+                GPSDb gdb = new GPSDb(constr);
+                var result = new GetServiceTicketResponse();
+                if (string.IsNullOrEmpty(data.responseQX))
+                    data.responseQX = "";
+                if (!gdb.QuanXianCx("ck101c", data.responseQX) || string.IsNullOrEmpty(data.wechat))
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    //data.wechat = "13573589234";
+                    var identity = GetIdentity(data.wechat);
+                    var isMainDriver = IsMainDriver(data.wechat);
+                    result.data = new List<DataItemServiceTicket>();
+                    result.noData = new List<DataItemServiceTicket>();
+                    var db = GetDbSqlHelper();
+                    //var sql =
+                    //    "select id,PlateNumber,TralerNO,TankNO,MainDriver,DeputyDriver,CheckUpStatus,CurrentIndex,CreateUser,MainDriverCard,DeputyDriverCard,TransportCatpacityID,CorrectPlateNO,CorrectTrailerNO,CorrectTankNO,CorrectMainDriver,CorrectDeputyDriver,IsMainInfoCorrect,NormalProArray,ProblemProArray,CurrentStep,IsProjectCorrect from ";
+                    //查询未完成（主副驾的姓名/身份证/微信、计划返回基地、计划返回基地时间、服务状态从运营系统的data录入中获取）
+                    var sql = "select a.*,b.Driver as MainDriverName,b.ReturnDase as ReturnDase,b.PlanTimeOfReturnDate as PlanTimeOfReturnDate,(select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.driverId) as MainDriverWechat,b.copilot as DeputyDriverName,isnull((select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.supercargoId),'') as DeputyDriverWechat,(select name from ty_crm_DataFile where type=901 and rtrim(latitude)= isnull(b.Status,0)) as ThisServiceStatus,b.Status as DeliveryStatus,isnull(a.ExpectedReturnPlaceTime,b.PlanTimeOfReturnDate) as ExpectReturnPlaceTime from Y_ServiceTicket a left join y_entering b on a.enteringid=b.id where IsDeleted=0";
+                    var str = "";
+                    //if (!string.IsNullOrEmpty(data.keyword))
+                    //    str += $" and PlateNumber like '%{data.keyword}%'";
+                    //if (!string.IsNullOrEmpty(data.startTime))
+                    //    str += $" and Create_Time>={data.startTime}";
+                    //if (!string.IsNullOrEmpty(data.endTime))
+                    //    str += $" and Create_Time<={data.endTime}";
+                    //if (!string.IsNullOrEmpty(data.id))
+                    //    str += $" and id={data.id}";
+                    //if (!string.IsNullOrEmpty(data.checkStatus))
+                    //    if(data.checkStatus=="0")
+                    //if (data.searchFlag == "1")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4)";
+                    //else if (data.searchFlag == "2")
+                    //    str += $" and (CheckUpStatus=6 or CheckUpStatus=7)";
+                    //else if (data.ctype == "1")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4)";
+                    //else if (data.ctype == "3")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4 or CheckUpStatus=7)";
+                    //else
+                    //if(isMainDriver == 1)
+                       // str += $" and (or DeputyDriverStatus=0 or DeputyDriverStatus=2)";
+                    //if (isMainDriver == 2)
+                    //    str += $" and (DeputyDriverStatus=0 or DeputyDriverStatus=2)";
+                    if (!string.IsNullOrEmpty(data.wechat))
+                        str += $" and ((b.driverId='{identity}' and (a.MainDriverStatus=0 or a.MainDriverStatus=2) and a.Status!=9) or (b.supercargoId='{identity}' and (a.DeputyDriverStatus=0 or a.DeputyDriverStatus=2) and a.Status!=9))";
+                    if (!string.IsNullOrEmpty(data.id))
+                        str += $" and a.id={data.id}";
+                    //if (isMainDriver == 1)
+                    //    str += $" and a.MainDriverCard='{identity}'";
+                    //if (isMainDriver == 2)
+                    //    str += $" and a.DeputyDriverCard='{identity}'";
+                    //if (data.checkStatus == "1")
+                    //    str += $"and CheckUpStatus=3 or CheckUpStatus=4";
+                    //if (!string.IsNullOrEmpty(data.id))
+                    //    str += $" and id='{data.id}'";
+                    string order;
+                    if (!string.IsNullOrEmpty(data.sortBy))
+                        order = "Status asc,Create_Time desc ";
+                    else
+                        order = "Status desc,Create_Time desc ";
+
+                    sql += str;
+                    var sql3 = $"select count(*) as count from ({sql}) t3";
+                    result.totalElements = db.ExecuteScalar(sql3);
+
+                    //处理分页
+                    var pagesize = 20;
+                    var page = 0;
+                    if (data.size > 0) pagesize = data.size;
+                    if (data.page > 0) page = data.page;
+
+                    sql =
+                        $"select * from ({sql}) t2 order by {order} offset {pagesize * page} rows fetch next {pagesize} rows only";
+                    var list = db.QueryDynamicList(sql);
+                    //查询已完成
+                    var sql1 = "select a.*,b.Driver as MainDriverName,b.ReturnDase as ReturnDase,b.PlanTimeOfReturnDate as PlanTimeOfReturnDate,(select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.driverId) as MainDriverWechat,b.copilot as DeputyDriverName,isnull((select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.supercargoId),'') as DeputyDriverWechat,(select name from ty_crm_DataFile where type=901 and rtrim(latitude)= isnull(b.Status,0)) as ThisServiceStatus,b.Status as DeliveryStatus,ProductClass = STUFF(( SELECT ',' + Name FROM   ty_crm_ChangPinLx WHERE  PATINDEX('%,' + RTRIM(id) + ',%',',' + a.ExpectNextShipmentClass + ',')>0 ORDER BY PATINDEX('%,' + RTRIM(id) + ',%',',' + a.ExpectNextShipmentClass + ',') FOR XML PATH('')), 1, 1, ''),isnull(a.ExpectedReturnPlaceTime,b.PlanTimeOfReturnDate) as ExpectReturnPlaceTime from Y_ServiceTicket a left join y_entering b on a.enteringid=b.id where IsDeleted=0";
+                    var str1 = "";
+                    //if (isMainDriver == 1)
+                    //    str1 += $" and MainDriverStatus=1";
+                    //if (isMainDriver == 2)
+                    //    str1 += $" and DeputyDriverStatus=1";
+                    if (!string.IsNullOrEmpty(data.wechat))
+                        str1 += $" and ((b.driverId='{identity}' and a.MainDriverStatus=1 and a.Status!=9) or (b.supercargoId='{identity}' and a.DeputyDriverStatus=1 and a.Status!=9))";
+                    if (!string.IsNullOrEmpty(data.id))
+                        str1 += $" and a.id={data.id}";
+                    //if (isMainDriver == 1)
+                    //    str1 += $" and a.MainDriverCard='{identity}'";
+                    //if (isMainDriver == 2)
+                    //    str1 += $" and a.DeputyDriverCard='{identity}'";
+                    string order1;
+                    order1 = "FillStartTime desc";
+                    sql1 += str1;
+                    var sql4 = $"select count(*) as count from {sql1} t4";
+
+                    sql1 =
+                        $"select * from ({sql1}) t5 order by {order1} offset {pagesize * page} rows fetch next {pagesize} rows only";
+                    var list1 = db.QueryDynamicList(sql1);
+                    //待填报
+                    foreach (var l in list)
+                    {
+                        var di = new DataItemServiceTicket();
+
+                        di.id = Convert.ToString(l.id);
+                        di.customer = l.Customer.Replace(" ", "");
+                        di.productName = l.ProductName.Replace(" ", "");
+                        di.mainDriverCard = l.MainDriverCard.Replace(" ", "");
+                        di.mainDriverWechat = l.MainDriverWechat.Replace(" ", "");
+                        di.deputyDriverCard = l.DeputyDriverCard == null ? "" : l.DeputyDriverCard.Replace(" ", "");
+                        di.deputyDriverWechat = l.DeputyDriverWechat == null ? "" : l.DeputyDriverWechat.Replace(" ", "");
+                        di.shipmentTrackingNO = l.ShipmentTrackingNo == null ? "" : l.ShipmentTrackingNo.Replace(" ", "");
+                        di.expectReturnPlace = l.ReturnDase == null ? "" : l.ReturnDase.Replace(" ", "");
+                        di.expectReturnPlaceTime = Convert.ToString(l.ExpectReturnPlaceTime);
+                        di.returnStatus = l.ReturnStatus == null ? "" : l.ReturnStatus.Replace(" ", "");
+                        di.offDutyDays = Convert.ToString(l.OffDutyDays) == null ? "0" : Convert.ToString(l.OffDutyDays);
+                        di.offDutyReason = l.OffDutyReason;
+                        di.deputyOffDutyDays = Convert.ToString(l.DeputyOffDutyDays) == null ? "0" : Convert.ToString(l.DeputyOffDutyDays);
+                        di.deputyOffDutyReaon = l.DeputyOffDutyReason;
+                        di.repairDescription = l.RepairDescription == null ? "" : l.RepairDescription.Replace(" ", " ");
+                        di.deputyExpectNextShipmentTime = Convert.ToString(l.DeputyExpectShipmentTime);
+                        di.expectNextShipmentTime = Convert.ToString(l.ExpectNextShipmentTime);
+                        di.expectNextShipmentClass = l.ExpectNextShipmentClass == null ? "" : l.ExpectNextShipmentClass.Replace(" ", " ");
+                        di.modifyTime = l.Modify_Time == null ? "" : l.Modify_Time.Replace(" ", " ");
+                        di.fillStartTime = Convert.ToString(l.FillStartTime);
+                        di.expectStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.mainDriverName = l.MainDriverName;
+                        di.deputyDriverName = l.DeputyDriverName;
+                        di.deputyDriverName = l.DeputyDriverName;
+                        di.deputyReturnStatus = l.DeputyReturnStatus == null ? "" : l.DeputyReturnStatus.Replace(" ", "");
+                        di.plateNumber = l.PlateNumber == null ? "" : l.PlateNumber.Replace(" ", "");
+                        di.serviceStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.thisServiceStatus = l.ThisServiceStatus;
+                        di.thisServiceStatusInt = l.DeliveryStatus == null ? 0 : l.DeliveryStatus;
+                        di.mainDriverStatus = l.MainDriverStatus;
+                        di.deputyStatus = l.DeputyDriverStatus;
+                        di.planReturnTime = Convert.ToString(l.PlanTimeOfReturnDate);
+                        di.mainDriverOffDutyType = l.MainDriverOffDutyType;
+                        di.deputyOffDutyType = l.DeputyOffDutyType;
+                        di.expiryCertificate = Convert.ToString(l.ExpiryCertificate);
+                        di.deputyExpiryCertificate = Convert.ToString(l.DeputyExpiryCertificate);
+                        di.freightGroup = l.FreightGroup;
+                        di.deputyFreightGroup = l.deputyFreightGroup;
+                        di.dutySerialNumber = l.DutySerialNumber;
+                        di.dutyBPMCreateTime = Convert.ToString(l.DutyBPMCreateTime);
+                        switch (l.DutyApproveStatus)
+
+                        {
+                            case 1:
+                                di.dutyApproveStatus = "任务已撤销";
+                                break;
+                            case 2:
+                                di.dutyApproveStatus = "审批通过";
+                                break;
+                            case 3:
+                                di.dutyApproveStatus = "审批中";
+                                break;
+                            case 4:
+                                di.dutyApproveStatus = "审批不通过";
+                                break;
+                            case 5:
+                                di.dutyApproveStatus = "任务删除";
+                                break;
+                            default:
+                                di.dutyApproveStatus = "无请假";
+                                break;
+                        }
+                        switch (l.DeputyDutyApproveStatus)
+
+                        {
+                            case 1:
+                                di.deputyDutyApproveStatus = "任务已撤销";
+                                break;
+                            case 2:
+                                di.deputyDutyApproveStatus = "审批通过";
+                                break;
+                            case 3:
+                                di.deputyDutyApproveStatus = "审批中";
+                                break;
+                            case 4:
+                                di.deputyDutyApproveStatus = "审批不通过";
+                                break;
+                            case 5:
+                                di.deputyDutyApproveStatus = "任务删除";
+                                break;
+                            default:
+                                di.deputyDutyApproveStatus = "无请假";
+                                break;
+                        }
+
+                        //待修改---
+                        if ((isMainDriver == 1 && l.MainDriverStatus == 0) || (isMainDriver == 2 && l.DeputyDriverStatus == 0))
+                        {
+                            di.avatar = "http://api.woaijian.com/holdcheck.svg";
+                            di.serviceStatus = "等待填报";
+                        }
+                        else if ((isMainDriver == 1 && l.MainDriverStatus == 2) || (isMainDriver == 2 && l.DeputyDriverStatus == 2))
+                        {
+                            di.avatar = "http://api.woaijian.com/checking.svg";
+                            di.serviceStatus = "已存草稿";
+                        }
+                        result.data.Add(di);
+                    }
+                    //已完成列表
+                    foreach (var l in list1)
+                    {
+                        var di = new DataItemServiceTicket();
+
+                        di.id = Convert.ToString(l.id);
+                        di.customer = l.Customer.Replace(" ", "");
+                        di.productName = l.ProductName.Replace(" ", "");
+                        di.mainDriverCard = l.MainDriverCard.Replace(" ", "");
+                        di.mainDriverWechat = l.MainDriverWechat.Replace(" ", "");
+                        di.deputyDriverCard = l.DeputyDriverCard == null ? "" : l.DeputyDriverCard.Replace(" ", "");
+                        di.deputyDriverWechat = l.DeputyDriverWechat == null ? "" : l.DeputyDriverWechat.Replace(" ", "");
+                        di.shipmentTrackingNO = l.ShipmentTrackingNo == null ? "" : l.ShipmentTrackingNo.Replace(" ", "");
+                        di.expectReturnPlace = l.ReturnDase == null ? "" : l.ReturnDase.Replace(" ", "");
+                        di.expectReturnPlaceTime = Convert.ToString(l.ExpectReturnPlaceTime);
+                        di.returnStatus = l.ReturnStatus == null ? "" : l.ReturnStatus.Replace(" ", "");
+                        di.offDutyDays = Convert.ToString(l.OffDutyDays) == null ? "0" : Convert.ToString(l.OffDutyDays);
+                        di.offDutyReason = l.OffDutyReason;
+                        di.deputyOffDutyReaon = l.DeputyOffDutyReason;
+                        di.deputyOffDutyDays = Convert.ToString(l.OffDutyDays) == null ? "0" : Convert.ToString(l.OffDutyDays);
+                        di.repairDescription = l.RepairDescription == null ? "" : l.RepairDescription.Replace(" ", "");
+                        di.deputyExpectNextShipmentTime = Convert.ToString(l.DeputyExpectShipmentTime);
+                        di.expectNextShipmentTime = Convert.ToString(l.ExpectNextShipmentTime);
+                        di.expectNextShipmentClass = l.ExpectNextShipmentClass == null ? "" : l.ExpectNextShipmentClass.Replace(" ", "");
+                        di.productClass = l.ProductClass;
+                        di.modifyTime = l.Modify_Time;
+                        di.fillStartTime = Convert.ToString(l.FillStartTime);
+                        di.expectStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.mainDriverName = l.MainDriverName;
+                        di.deputyDriverName = l.DeputyDriverName;
+                        di.deputyReturnStatus = l.DeputyReturnStatus == null ? "" : l.DeputyReturnStatus.Replace(" ", "");
+                        di.plateNumber = l.PlateNumber == null ? "" : l.PlateNumber.Replace(" ", "");
+                        di.serviceStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.thisServiceStatus = l.ThisServiceStatus;
+                        di.thisServiceStatusInt = l.DeliveryStatus == null ? 0 : l.DeliveryStatus;
+                        di.planReturnTime = Convert.ToString(l.PlanTimeOfReturnDate);
+                        di.mainDriverAddress = l.MainDriverFillAdrress;
+                        di.deputyAddress = l.DeputyFillAdrress;
+                        di.mainDriverStatus = l.MainDriverStatus;
+                        di.deputyStatus = l.DeputyDriverStatus;
+                        di.mainDriverOffDutyType = l.MainDriverOffDutyType;
+                        di.deputyOffDutyType = l.DeputyOffDutyType;
+                        di.expiryCertificate = Convert.ToString(l.ExpiryCertificate);
+                        di.deputyExpiryCertificate = Convert.ToString(l.DeputyExpiryCertificate);
+                        di.freightGroup = l.FreightGroup;
+                        di.deputyFreightGroup = l.deputyFreightGroup;
+                        di.dutySerialNumber = l.DutySerialNumber;
+                        di.dutyBPMCreateTime = Convert.ToString(l.DutyBPMCreateTime);
+                        //if (l.MainDriverStatus == 1 || l.DeputyDriverStatus==1)
+                        //{
+                        di.avatar = "http://api.woaijian.com/holdcheck.svg";
+                            di.serviceStatus = "完成";
+                        //}
+                        result.noData.Add(di);
+                    }
+
+                    this.LogUser("GetServiceTicket", "HttpPost", " 查询服务单（未完成/已完成）列表");
+                    return Ok(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        /// <summary>
+        ///     查询异常服务单详情
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("GetServiceTicketUnusal")]
+        public IActionResult GetServiceTicketUnusal([FromBody] GetServiceTicketRequest data)
+        {
+            try
+            {
+                var constr = GlobalVar.ConnString + GlobalVar.DbName;
+                GPSDb gdb = new GPSDb(constr);
+                var result = new GetServiceTicketResponse();
+                if (string.IsNullOrEmpty(data.responseQX))
+                    data.responseQX = "";
+                if (!gdb.QuanXianCx("ck101c", data.responseQX) || string.IsNullOrEmpty(data.wechat))
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    //data.wechat = "13573589234";
+                    var identity = GetIdentity(data.wechat);
+                    var isMainDriver = IsMainDriver(data.wechat);
+                    result.data = new List<DataItemServiceTicket>();
+                    result.noData = new List<DataItemServiceTicket>();
+                    var db = GetDbSqlHelper();
+                    //var sql =
+                    //    "select id,PlateNumber,TralerNO,TankNO,MainDriver,DeputyDriver,CheckUpStatus,CurrentIndex,CreateUser,MainDriverCard,DeputyDriverCard,TransportCatpacityID,CorrectPlateNO,CorrectTrailerNO,CorrectTankNO,CorrectMainDriver,CorrectDeputyDriver,IsMainInfoCorrect,NormalProArray,ProblemProArray,CurrentStep,IsProjectCorrect from ";
+                    //查询未完成
+                    var sql = "select a.*,b.Driver as MainDriverName,b.ReturnDase as ReturnDase,b.PlanTimeOfReturnDate as PlanTimeOfReturnDate,(select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.driverId) as MainDriverWechat,b.copilot as DeputyDriverName,isnull((select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.supercargoId),'') as DeputyDriverWechat,(select name from ty_crm_DataFile where type=901 and rtrim(latitude)= isnull(b.Status,0)) as ThisServiceStatus,b.Status as DeliveryStatus,isnull(a.ExpectedReturnPlaceTime,b.PlanTimeOfReturnDate) as ExpectReturnPlaceTime,ProductClass = STUFF(( SELECT ',' + Name FROM   ty_crm_ChangPinLx WHERE  PATINDEX('%,' + RTRIM(id) + ',%',',' + a.ExpectNextShipmentClass + ',')>0 ORDER BY PATINDEX('%,' + RTRIM(id) + ',%',',' + a.ExpectNextShipmentClass + ',') FOR XML PATH('')), 1, 1, '') from Y_ServiceTicketUnusual a left join y_entering b on a.enteringid=b.id where isnull(a.IsFilled,0)=0";
+                    var str = "";
+                    //if (!string.IsNullOrEmpty(data.keyword))
+                    //    str += $" and PlateNumber like '%{data.keyword}%'";
+                    //if (!string.IsNullOrEmpty(data.startTime))
+                    //    str += $" and Create_Time>={data.startTime}";
+                    //if (!string.IsNullOrEmpty(data.endTime))
+                    //    str += $" and Create_Time<={data.endTime}";
+                    //if (!string.IsNullOrEmpty(data.id))
+                    //    str += $" and id={data.id}";
+                    //if (!string.IsNullOrEmpty(data.checkStatus))
+                    //    if(data.checkStatus=="0")
+                    //if (data.searchFlag == "1")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4)";
+                    //else if (data.searchFlag == "2")
+                    //    str += $" and (CheckUpStatus=6 or CheckUpStatus=7)";
+                    //else if (data.ctype == "1")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4)";
+                    //else if (data.ctype == "3")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4 or CheckUpStatus=7)";
+                    //else
+                    //if(isMainDriver == 1)
+                    // str += $" and (or DeputyDriverStatus=0 or DeputyDriverStatus=2)";
+                    //if (isMainDriver == 2)
+                    //    str += $" and (DeputyDriverStatus=0 or DeputyDriverStatus=2)";
+                    if (isMainDriver == 1)
+                        str += $" and ((MainDriverCard is not null) or MainDriverCard != '')";
+                    if (isMainDriver == 2)
+                        str += $" and ((DeputyDriverCard is not null) or DeputyDriverCard != '')";
+                    if (!string.IsNullOrEmpty(data.wechat))
+                        str += $" and ((b.driverId='{identity}' and a.Status!=9) or (b.supercargoId='{identity}' and a.Status!=9))";
+                    if (!string.IsNullOrEmpty(data.id))
+                        str += $" and a.ServiceTiceketID={data.id}";
+
+                    //有可能存在查不到服务单主表数据；待后监测    去掉
+                    //if (isMainDriver == 1)
+                    //    str += $" and a.MainDriverCard='{identity}'";
+                    //if (isMainDriver == 2)
+                    //    str += $" and a.DeputyDriverCard='{identity}'";
+
+
+                    //if (data.checkStatus == "1")
+                    //    str += $"and CheckUpStatus=3 or CheckUpStatus=4";
+                    //if (!string.IsNullOrEmpty(data.id))
+                    //    str += $" and id='{data.id}'";
+                    string order;
+                    if (!string.IsNullOrEmpty(data.sortBy))
+                        order = "Status asc,Create_Time desc ";
+                    else
+                        order = "Status desc,Create_Time desc ";
+
+                    sql += str;
+                    var sql3 = $"select count(*) as count from ({sql}) t3";
+                    result.totalElements = db.ExecuteScalar(sql3);
+
+                    //处理分页
+                    var pagesize = 20;
+                    var page = 0;
+                    if (data.size > 0) pagesize = data.size;
+                    if (data.page > 0) page = data.page;
+
+                    sql =
+                        $"select * from ({sql}) t2 order by {order} offset {pagesize * page} rows fetch next {pagesize} rows only";
+                    var list = db.QueryDynamicList(sql);
+                    //查询已完成
+                    var sql1 = "select a.*,b.Driver as MainDriverName,b.ReturnDase as ReturnDase,b.PlanTimeOfReturnDate as PlanTimeOfReturnDate,(select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.driverId) as MainDriverWechat,b.copilot as DeputyDriverName,isnull((select Wechat from Y_Driver where ETTP_IDENTIFICATION_NO=b.supercargoId),'') as DeputyDriverWechat,(select name from ty_crm_DataFile where type=901 and rtrim(latitude)= isnull(b.Status,0)) as ThisServiceStatus,b.Status as DeliveryStatus,ProductClass = STUFF(( SELECT ',' + Name FROM   ty_crm_ChangPinLx WHERE  PATINDEX('%,' + RTRIM(id) + ',%',',' + a.ExpectNextShipmentClass + ',')>0 ORDER BY PATINDEX('%,' + RTRIM(id) + ',%',',' + a.ExpectNextShipmentClass + ',') FOR XML PATH('')), 1, 1, ''),isnull(a.ExpectedReturnPlaceTime,b.PlanTimeOfReturnDate) as ExpectReturnPlaceTime from Y_ServiceTicketUnusual a left join y_entering b on a.enteringid=b.id where isnull(a.IsFilled,0)=0";
+                    var str1 = "";
+                    //if (isMainDriver == 1)
+                    //    str1 += $" and MainDriverStatus=1";
+                    //if (isMainDriver == 2)
+                    //    str1 += $" and DeputyDriverStatus=1";
+                    if (isMainDriver == 1)
+                        str1 += $" and ((MainDriverCard is not null) or MainDriverCard != '')";
+                    if (isMainDriver == 2)
+                        str1 += $" and ((DeputyDriverCard is not null) or DeputyDriverCard != '')";
+                    if (!string.IsNullOrEmpty(data.wechat))
+                        str1 += $" and ((b.driverId='{identity}' and a.MainDriverStatus=1 and a.Status!=9) or (b.supercargoId='{identity}' and a.DeputyDriverStatus=1 and a.Status!=9))";
+                    if (!string.IsNullOrEmpty(data.id))
+                        str1 += $" and a.ServiceTiceketID={data.id}";
+
+                    //if (isMainDriver == 1)
+                    //    str1 += $" and a.MainDriverCard='{identity}'";
+                    //if (isMainDriver == 2)
+                    //    str1 += $" and a.DeputyDriverCard='{identity}'";
+
+                    string order1;
+                    order1 = "FillStartTime desc";
+                    sql1 += str1;
+                    var sql4 = $"select count(*) as count from {sql1} t4";
+
+                    sql1 =
+                        $"select * from ({sql1}) t5 order by {order1} offset {pagesize * page} rows fetch next {pagesize} rows only";
+                    var list1 = db.QueryDynamicList(sql1);
+                    //待填报
+                    foreach (var l in list)
+                    {
+                        var di = new DataItemServiceTicket();
+
+                        di.id = Convert.ToString(l.id);
+                        di.customer = l.Customer.Replace(" ", "");
+                        di.productName = l.ProductName.Replace(" ", "");
+                        di.mainDriverCard = l.MainDriverCard == null ? "" : l.MainDriverCard.Replace(" ", "");
+                        di.mainDriverWechat = l.MainDriverWechat == null ? "" : l.MainDriverWechat.Replace(" ", "");
+                        di.deputyDriverCard = l.DeputyDriverCard == null ? "" : l.DeputyDriverCard.Replace(" ", "");
+                        di.deputyDriverWechat = l.DeputyDriverWechat == null ? "" : l.DeputyDriverWechat.Replace(" ", "");
+                        di.shipmentTrackingNO = l.ShipmentTrackingNo == null ? "" : l.ShipmentTrackingNo.Replace(" ", "");
+                        di.expectReturnPlace = l.ReturnDase == null ? "" : l.ReturnDase.Replace(" ", "");
+
+                        if (isMainDriver == 2)
+                            di.expectReturnPlaceTime = Convert.ToString(l.ExpectReturnPlaceTime);
+                        else
+                            di.expectReturnPlaceTime = "";
+                        di.returnStatus = "";
+                        di.offDutyDays = "0";
+                        di.offDutyReason = "";
+                        di.deputyOffDutyDays = "0";
+                        di.deputyOffDutyReaon = "";
+                        di.repairDescription = "";
+                        di.deputyExpectNextShipmentTime = "";
+                        di.expectNextShipmentTime = "";
+                        di.expectNextShipmentClass = "";
+
+                        di.modifyTime = l.Modify_Time == null ? "" : l.Modify_Time.Replace(" ", " ");
+                        di.fillStartTime = Convert.ToString(l.FillStartTime);
+                        di.expectStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.mainDriverName = l.MainDriverName;
+                        di.deputyDriverName = l.DeputyDriverName;
+                        di.deputyDriverName = l.DeputyDriverName;
+                        di.deputyReturnStatus = l.DeputyReturnStatus == null ? "" : l.DeputyReturnStatus.Replace(" ", "");
+                        di.plateNumber = l.PlateNumber == null ? "" : l.PlateNumber.Replace(" ", "");
+                        di.serviceStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.thisServiceStatus = l.ThisServiceStatus;
+                        di.thisServiceStatusInt = l.DeliveryStatus == null ? 0 : l.DeliveryStatus;
+
+                        di.mainDriverStatus = 0;
+                        di.deputyStatus = 0;
+
+                        di.planReturnTime = Convert.ToString(l.PlanTimeOfReturnDate);
+
+                        di.mainDriverOffDutyType = "";
+                        di.deputyOffDutyType = "";
+                        di.expiryCertificate = "";
+                        di.deputyExpiryCertificate = "";
+                        di.freightGroup = "";
+                        di.deputyFreightGroup = "";
+
+                        di.dutySerialNumber = l.DutySerialNumber;
+                        di.dutyBPMCreateTime = Convert.ToString(l.DutyBPMCreateTime);
+                        di.deputyDutySerialNumber = l.DeputyDutySerialNumber;
+                        di.deputyDutyBPMCreateTime = l.DeputyDutyBPMCreateTime;
+                        di.serviceSerialNumber = l.ServiceSerialNumber;
+                        di.serviceBPMCreateTime = l.ServiceBPMCreateTime;
+                        di.deputyServiceSerialNumber = l.DeputyServiceSerialNumber;
+                        di.deputyServiceBPMCreateTime = l.DeputyServiceBPMCreateTime;
+
+                        //先前数据
+                        di.expectReturnPlaceTimeOld = Convert.ToString(l.ExpectReturnPlaceTime);
+                        di.returnStatusOld = l.ReturnStatus == null ? "" : l.ReturnStatus.Replace(" ", "");
+                        di.offDutyDaysOld = Convert.ToString(l.OffDutyDays) == null ? "0" : Convert.ToString(l.OffDutyDays);
+                        di.offDutyReasonOld = l.OffDutyReason;
+                        di.deputyOffDutyDaysOld = Convert.ToString(l.DeputyOffDutyDays) == null ? "0" : Convert.ToString(l.DeputyOffDutyDays);
+                        di.deputyOffDutyReaonOld = l.DeputyOffDutyReason;
+                        di.repairDescriptionOld = l.RepairDescription == null ? "" : l.RepairDescription.Replace(" ", " ");
+                        di.deputyExpectNextShipmentTimeOld = Convert.ToString(l.DeputyExpectShipmentTime);
+                        di.expectNextShipmentTimeOld = Convert.ToString(l.ExpectNextShipmentTime);
+                        di.expectNextShipmentClassOld = l.ExpectNextShipmentClass == null ? "" : l.ExpectNextShipmentClass.Replace(" ", " ");
+                        di.mainDriverOffDutyTypeOld = l.MainDriverOffDutyType;
+                        di.deputyOffDutyTypeOld = l.DeputyOffDutyType;
+                        di.expiryCertificateOld = Convert.ToString(l.ExpiryCertificate);
+                        di.deputyExpiryCertificateOld = Convert.ToString(l.DeputyExpiryCertificate);
+                        di.freightGroupOld = l.FreightGroup;
+                        di.deputyFreightGroupOld = l.DeputyFreightGroup;
+                        di.mainDriverFillAddressOld = l.MainDriverFillAdrress;
+                        di.deputyDriverFillAddressOld = l.DeputyFillAdrress;
+                        di.productClassOld = l.ProductClass;
+
+                        result.data.Add(di);
+                    }
+                    //已完成列表
+                    foreach (var l in list1)
+                    {
+                        var di = new DataItemServiceTicket();
+
+                        di.id = Convert.ToString(l.id);
+                        di.customer = l.Customer.Replace(" ", "");
+                        di.productName = l.ProductName.Replace(" ", "");
+                        di.mainDriverCard = l.MainDriverCard == null ? "" : l.MainDriverCard.Replace(" ", "");
+                        di.mainDriverWechat = l.MainDriverWechat == null ? "" : l.MainDriverWechat.Replace(" ", "");
+                        di.deputyDriverCard = l.DeputyDriverCard == null ? "" : l.DeputyDriverCard.Replace(" ", "");
+                        di.deputyDriverWechat = l.DeputyDriverWechat == null ? "" : l.DeputyDriverWechat.Replace(" ", "");
+                        di.shipmentTrackingNO = l.ShipmentTrackingNo == null ? "" : l.ShipmentTrackingNo.Replace(" ", "");
+                        di.expectReturnPlace = l.ReturnDase == null ? "" : l.ReturnDase.Replace(" ", "");
+                        di.expectReturnPlaceTime = Convert.ToString(l.ExpectReturnPlaceTime);
+                        di.returnStatus = l.ReturnStatus == null ? "" : l.ReturnStatus.Replace(" ", "");
+                        di.offDutyDays = Convert.ToString(l.OffDutyDays) == null ? "0" : Convert.ToString(l.OffDutyDays);
+                        di.offDutyReason = l.OffDutyReason;
+                        di.deputyOffDutyReaon = l.DeputyOffDutyReason;
+                        di.deputyOffDutyDays = Convert.ToString(l.OffDutyDays) == null ? "0" : Convert.ToString(l.OffDutyDays);
+                        di.repairDescription = l.RepairDescription == null ? "" : l.RepairDescription.Replace(" ", "");
+                        di.deputyExpectNextShipmentTime = Convert.ToString(l.DeputyExpectShipmentTime);
+                        di.expectNextShipmentTime = Convert.ToString(l.ExpectNextShipmentTime);
+                        di.expectNextShipmentClass = l.ExpectNextShipmentClass == null ? "" : l.ExpectNextShipmentClass.Replace(" ", "");
+                        di.productClass = l.ProductClass;
+                        di.modifyTime = l.Modify_Time;
+                        di.fillStartTime = Convert.ToString(l.FillStartTime);
+                        di.expectStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.mainDriverName = l.MainDriverName;
+                        di.deputyDriverName = l.DeputyDriverName;
+                        di.deputyReturnStatus = l.DeputyReturnStatus == null ? "" : l.DeputyReturnStatus.Replace(" ", "");
+                        di.plateNumber = l.PlateNumber == null ? "" : l.PlateNumber.Replace(" ", "");
+                        di.serviceStartTime = Convert.ToString(l.ServiceStartTime);
+                        di.thisServiceStatus = l.ThisServiceStatus;
+                        di.thisServiceStatusInt = l.DeliveryStatus == null ? 0 : l.DeliveryStatus;
+                        di.planReturnTime = Convert.ToString(l.PlanTimeOfReturnDate);
+                        di.mainDriverAddress = l.MainDriverFillAdrress;
+                        di.deputyAddress = l.DeputyFillAdrress;
+                        di.mainDriverStatus = l.MainDriverStatus == null ? 0 : l.MainDriverStatus;
+                        di.deputyStatus = l.DeputyDriverStatus == null ? 0 : l.DeputyDriverStatus; 
+                        di.mainDriverOffDutyType = l.MainDriverOffDutyType;
+                        di.deputyOffDutyType = l.DeputyOffDutyType;
+                        di.expiryCertificate = Convert.ToString(l.ExpiryCertificate);
+                        di.deputyExpiryCertificate = Convert.ToString(l.DeputyExpiryCertificate);
+                        di.freightGroup = l.FreightGroup;
+                        di.deputyFreightGroup = l.deputyFreightGroup;
+                        di.dutySerialNumber = l.DutySerialNumber;
+                        di.dutyBPMCreateTime = Convert.ToString(l.DutyBPMCreateTime);
+                        di.unusualType = l.UnusualType;
+                        di.unusualReason = l.UnusualReason;
+                        di.deputyUnusalReason = l.DeputyUnusualReason;
+                        //先前数据
+                        di.expectReturnPlaceTimeOld = Convert.ToString(l.ExpectReturnPlaceTime);
+                        di.returnStatusOld = l.ReturnStatus == null ? "" : l.ReturnStatus.Replace(" ", "");
+                        di.offDutyDaysOld = Convert.ToString(l.OffDutyDays) == null ? "0" : Convert.ToString(l.OffDutyDays);
+                        di.offDutyReasonOld = l.OffDutyReason;
+                        di.deputyOffDutyDaysOld = Convert.ToString(l.DeputyOffDutyDays) == null ? "0" : Convert.ToString(l.DeputyOffDutyDays);
+                        di.deputyOffDutyReaonOld = l.DeputyOffDutyReason;
+                        di.repairDescriptionOld = l.RepairDescription == null ? "" : l.RepairDescription.Replace(" ", " ");
+                        di.deputyExpectNextShipmentTimeOld = Convert.ToString(l.DeputyExpectShipmentTime);
+                        di.expectNextShipmentTimeOld = Convert.ToString(l.ExpectNextShipmentTime);
+                        di.expectNextShipmentClassOld = l.ExpectNextShipmentClass == null ? "" : l.ExpectNextShipmentClass.Replace(" ", " ");
+                        di.mainDriverOffDutyTypeOld = l.MainDriverOffDutyType;
+                        di.deputyOffDutyTypeOld = l.DeputyOffDutyType;
+                        di.expiryCertificateOld = Convert.ToString(l.ExpiryCertificate);
+                        di.deputyExpiryCertificateOld = Convert.ToString(l.DeputyExpiryCertificate);
+                        di.freightGroupOld = l.FreightGroup;
+                        di.deputyFreightGroupOld = l.DeputyFreightGroup;
+                        di.mainDriverFillAddressOld = l.MainDriverFillAdrress;
+                        di.deputyDriverFillAddressOld = l.DeputyFillAdrress;
+                        di.productClassOld = l.ProductClass;
+                        result.noData.Add(di);
+                    }
+
+                    this.LogUser("GetServiceTicketUnusal", "HttpPost", " 查询服务单（异常）详情");
+                    return Ok(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        /// <summary>
+        ///     查询商品大类
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetProductCategory")]
+        public IActionResult GetProductCategory()
+        {
+            try
+            {
+                var result = new ProductCategoryList();
+                var db = GetDbSqlHelper();
+                var list = db.QueryList<ProductCategory>(
+                    "select id as value,Name as text from ty_crm_ChangPinLx");
+                result.data = list;
+                this.LogUser("GetProductCategory", "HttpGet", "查询产品大类");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        /// <summary>
+        ///     查询返回基地列表
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetReturnPlace")]
+        public IActionResult GetReturnPlace()
+        {
+            try
+            {
+                var result = new ProductCategoryList();
+                var db = GetDbSqlHelper();
+                var list = db.QueryList<ProductCategory>(
+                    "select id as value,Name as text from ty_crm_DataFile where type=58");
+                result.data = list;
+                this.LogUser("GetReturnPlace", "HttpGet", "查询返回基地列表");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        /// <summary>
+        ///     查询异常类型
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetUnusalType")]
+        public IActionResult GetUnusalType()
+        {
+            try
+            {
+                var result = new ProductCategoryList();
+                var db = GetDbSqlHelper();
+                var list = db.QueryList<ProductCategory>(
+                    "select id as value,Name as text from ty_crm_DataFile where type=90");
+                result.data = list;
+                this.LogUser("GetUnusalType", "HttpGet", "查询异常类型");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        /// <summary>
+        ///     新增/更新服务单
+        /// </summary>
+        /// <returns></returns>
+        [HttpPut]
+        [Route("UpdateServiceTicket")]
+        public IActionResult UpdateServiceTicket([FromBody] AddServiceTicketRequest data)
+        {
+            try
+            {
+                //var te = "";
+                var db = GetDbSqlHelper();
+                //var sqls = new List<string>();
+                //int isProCorrect = (data.IsProjectCorrect == false) ? 1 : 0;//0为正常，1为不正常
+                //if (isProCorrect == 1)
+                //    te = ",IsProjectCorrect=1";
+                //else
+                //    te = "";
+                //if (data.IsProjectCorrectCommand == "0")
+                //    te = ",IsProjectCorrect=0";
+                var isMainDriver = IsMainDriver(data.wechat);
+                var instr = "";
+                if (!string.IsNullOrEmpty(Convert.ToString(data.offDutyDays)))
+                    instr = $"{data.offDutyDays}";
+                var str = "";
+                var str1 = "";
+                var str2 = "";
+                var str3 = "";
+                var dutyStatus = "";
+                var sqls = new List<string>();
+                if (data.returnStatus == "休班/请假")
+                    dutyStatus = $"DutyApproveStatus=3,";
+                if(data.deputyReturnStatus== "休班/请假")
+                    dutyStatus = $"DeputyDutyApproveStatus=3,";
+                if (isMainDriver == 1)
+                {
+                    str = $" ExpectedReturnPlace='{data.expectReturnPlace}',ExpectedReturnPlaceTime='{data.expectReturnPlaceTime}',ReturnStatus='{data.returnStatus}',RepairDescription='{data.repairDescription}',OffDutyDays={instr},ExpectNextShipmentTime='{data.expectNextShipmentTime}',ExpectNextShipmentClass='{data.expectNextShipmentClass}',Status={data.status},MainDriverStatus={data.mainDriverStatus},Modify_Time='{data.modify_time}',FillStartTime='{data.fillStartTime}',FillUser='{data.fillUser}',MainDriverFillAdrress='{data.mainDriverFillAddress}',OffDutyReason='{data.offDutyReason}',MainDriverLongitude='{data.mainDriverLongitude}',MainDriverlatitude='{data.mainDriverlatitude}',{dutyStatus}MainDriverOffDutyType='{data.offDutyType}',ExpiryCertificate='{data.expiryCertificate}',FreightGroup='{data.freightGroup}'";
+                    str2 = $" ExpectedReturnPlace='{data.expectReturnPlace}',ExpectedReturnPlaceTime='{data.expectReturnPlaceTime}',ReturnStatus='{data.returnStatus}',RepairDescription='{data.repairDescription}',OffDutyDays={instr},ExpectNextShipmentTime='{data.expectNextShipmentTime}',ExpectNextShipmentClass='{data.expectNextShipmentClass}',Status={data.status},MainDriverStatus={data.mainDriverStatus},Modify_Time='{data.modify_time}',FillStartTime='{data.fillStartTime}',FillUser='{data.fillUser}',MainDriverFillAdrress='{data.mainDriverFillAddress}',OffDutyReason='{data.offDutyReason}',MainDriverLongitude='{data.mainDriverLongitude}',MainDriverlatitude='{data.mainDriverlatitude}',{dutyStatus}MainDriverOffDutyType='{data.offDutyType}',ExpiryCertificate='{data.expiryCertificate}',FreightGroup='{data.freightGroup}'";
+                }
+                    
+                else if (isMainDriver == 2)
+                {
+                    str1 = $" DeputyDriverStatus={data.deputyStatus},DeputyReturnStatus='{data.deputyReturnStatus}',Status={data.status},DeputyOffDutyDays={instr},DeputyFillUser='{data.deputyFillUser}',DeputyFillTime='{DateTime.Now}',DeputyExpectShipmentTime='{data.deputyExpectNextShipmentTime}',DeputyFillAdrress='{data.deputyDriverFillAddress}',DeputyOffDutyReason='{data.offDutyReason}',DeputyLongitude='{data.deputyLongitude}',Deputylatitude='{data.deputylatitude}',{dutyStatus}DeputyOffDutyType='{data.offDutyType}',DeputyExpiryCertificate='{data.expiryCertificate}',DeputyFreightGroup='{data.freightGroup}',DeputyFillType=1";
+                    str3 = $" DeputyDriverStatus={data.deputyStatus},ExpectedReturnPlaceTime='{data.expectReturnPlaceTime}',DeputyReturnStatus='{data.deputyReturnStatus}',Status={data.status},DeputyOffDutyDays={instr},DeputyFillUser='{data.deputyFillUser}',DeputyFillTime='{DateTime.Now}',DeputyExpectShipmentTime='{data.deputyExpectNextShipmentTime}',DeputyFillAdrress='{data.deputyDriverFillAddress}',DeputyOffDutyReason='{data.offDutyReason}',DeputyLongitude='{data.deputyLongitude}',Deputylatitude='{data.deputylatitude}',{dutyStatus}DeputyOffDutyType='{data.offDutyType}',DeputyExpiryCertificate='{data.expiryCertificate}',DeputyFreightGroup='{data.freightGroup}'";
+                }
+                    
+                var sql =
+                    $"update Y_ServiceTicket set" + str + str1 + $" where id={data.id}";
+                sqls.Add(sql);
+                var sql1 = "";
+                if(isMainDriver==1)
+                    sql1 =$"update Y_ServiceTicketUnusual set" + str2 + str3 + $" where ServiceTiceketID={data.id} and ((MainDriverCard is not null) or MainDriverCard!='')";
+                else if(isMainDriver==2)
+                    sql1 = $"update Y_ServiceTicketUnusual set" + str2 + str3 + $" where ServiceTiceketID={data.id} and ((DeputyDriverCard is not null) or DeputyDriverCard!='')";
+                sqls.Add(sql1);
+                db.ExecuteTransWithSubTableReturnOid(sqls);
+                if (data.returnStatus == "休班/请假" || data.deputyReturnStatus == "休班/请假")
+                {
+                    data.isUnusal = 2;
+                    GeneratePostXML_OrderSend(data);
+                }
+                this.LogUser("AddServiceTicket", "HttpPost", "新增/更新服务单");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        /// <summary>
+        ///     新增/更新异常服务单
+        /// </summary>
+        /// <returns></returns>
+        [HttpPut]
+        [Route("UpdateServiceTicketUnusal")]
+        public IActionResult UpdateServiceTicketUnusal([FromBody] AddServiceTicketRequest data)
+        {
+            try
+            {
+                //var te = "";
+                var db = GetDbSqlHelper();
+                var sqls = new List<string>();
+                //int isProCorrect = (data.IsProjectCorrect == false) ? 1 : 0;//0为正常，1为不正常
+                //if (isProCorrect == 1)
+                //    te = ",IsProjectCorrect=1";
+                //else
+                //    te = "";
+                //if (data.IsProjectCorrectCommand == "0")
+                //    te = ",IsProjectCorrect=0";
+                var sql1 = "";
+                var isMainDriver = IsMainDriver(data.wechat);
+                if (isMainDriver==1)
+                    sql1 = $"update Y_ServiceTicketUnusual set IsDeleted=(case IsDeleted when 1 then 3 else IsDeleted end),MainDriverApprovalStatus=(case MainDriverApprovalStatus when 3 then 5 else MainDriverApprovalStatus end),DutyApproveStatus=(case DutyApproveStatus when 3 then 5 else DutyApproveStatus end),isFilled=1 where ServiceTiceketID={data.id} and MainDriverCard is not null";
+                else if(isMainDriver==2)
+                    sql1 = $"update Y_ServiceTicketUnusual set IsDeleted=(case IsDeleted when 1 then 3 else IsDeleted end),DeputyApprovalStatus=(case DeputyApprovalStatus  when 3 then 5 else DeputyApprovalStatus end ),DeputyDutyApproveStatus=(case DeputyDutyApproveStatus when 3 then 5 else DeputyDutyApproveStatus end),isFilled=1 where ServiceTiceketID={data.id} and DeputyDriverCard is not null";
+                sqls.Add(sql1);
+                
+                var instr = 0;
+                if (!string.IsNullOrEmpty(Convert.ToString(data.offDutyDays)))
+                    instr = Convert.ToInt32(data.offDutyDays);
+                var str = "";
+                var str1 = "";
+                var sql2 = "";
+                var sql3 = "";
+                var dutyStatus = "";
+                if (data.returnStatus == "休班/请假" || data.deputyReturnStatus == "休班/请假")
+                    dutyStatus = "3";
+                else
+                    dutyStatus = "0";
+                if (isMainDriver == 1)
+                {
+                    str = $"insert into Y_ServiceTicketUnusual(EnteringID,Create_Time,Customer,ProductName,MainDriverCard,ShipmentTrackingNo,ExpectStartTime,IsDeleted,CreateUser,PlateNumber,ServiceStartTime,PlanReturnTime,FillType,ServiceTiceketID,ExpectedReturnPlaceTime,ReturnStatus,RepairDescription,OffDutyDays,ExpectNextShipmentTime,ExpectNextShipmentClass,Status,MainDriverStatus,Modify_Time,FillStartTime,FillUser,MainDriverFillAdrress,OffDutyReason,MainDriverLongitude,MainDriverlatitude,MainDriverOffDutyType,ExpiryCertificate,FreightGroup,UnusualType,UnusualReason,IsFilled,ExpectedReturnPlace,MainDriverApprovalStatus,DutyApproveStatus,DutySerialNumber,ServiceStatus) select top 1 EnteringID,Create_Time,Customer,ProductName,MainDriverCard,ShipmentTrackingNo,ExpectStartTime,1,CreateUser,PlateNumber,ServiceStartTime,PlanReturnTime,1,ServiceTiceketID,'{data.expectReturnPlaceTime}','{data.returnStatus}','{data.repairDescription}',{instr},'{data.expectNextShipmentTime}','{data.expectNextShipmentClass}',{data.status},{data.mainDriverStatus},'{data.modify_time}','{data.fillStartTime}','{data.fillUser}','{data.mainDriverFillAddress}','{data.offDutyReason}','{data.mainDriverLongitude}','{data.mainDriverlatitude}','{data.offDutyType}','{data.expiryCertificate}','{data.freightGroup}','{data.unusalType}','{data.unusalReason}',0,'{data.expectReturnPlace}',3,{dutyStatus},'{data.dutySerialNumber}',ServiceStatus from Y_ServiceTicketUnusual where ServiceTiceketID={data.id} and ((MainDriverCard is not null) or MainDriverCard!='') order by Create_Time desc";
+                    sqls.Add(str);
+                    sql2 = $"update Y_ServiceTicket set MainDriverApprovalStatus=3,DutyApproveStatus={dutyStatus} where id={data.id}";
+                    sqls.Add(sql2);
+                }
+                    
+                else if (isMainDriver == 2)
+                {
+                    sql3 = $"insert into Y_ServiceTicketUnusual(EnteringID,Create_Time,Customer,ProductName,DeputyDriverCard,ShipmentTrackingNo,ExpectStartTime,IsDeleted,CreateUser,PlateNumber,ServiceStartTime,PlanReturnTime,ServiceTiceketID,ExpectedReturnPlaceTime,DeputyReturnStatus,RepairDescription,DeputyOffDutyDays,DeputyExpectShipmentTime,ExpectNextShipmentClass,Status,MainDriverStatus,Modify_Time,FillStartTime,DeputyFillUser,DeputyFillAdrress,DeputyOffDutyReason,DeputyLongitude,Deputylatitude,DeputyOffDutyType,DeputyExpiryCertificate,DeputyFreightGroup,UnusualType,UnusualReason,IsFilled,DeputyFillTime,ExpectedReturnPlace,DeputyApprovalStatus,DeputyDutyApproveStatus,FillType,DeputyDutySerialNumber,ServiceStatus,DeputyUnusualReason) select top 1 EnteringID,Create_Time,Customer,ProductName,DeputyDriverCard,ShipmentTrackingNo,ExpectStartTime,1,CreateUser,PlateNumber,ServiceStartTime,PlanReturnTime,ServiceTiceketID,'{data.expectReturnPlaceTime}','{data.deputyReturnStatus}','{data.repairDescription}',{instr},'{data.deputyExpectNextShipmentTime}','{data.expectNextShipmentClass}',{data.status},0,'{data.modify_time}','{data.fillStartTime}','{data.deputyFillUser}','{data.deputyDriverFillAddress}','{data.offDutyReason}','{data.deputyLongitude}','{data.deputylatitude}','{data.offDutyType}','{data.expiryCertificate}','{data.freightGroup}','{data.unusalType}','{data.unusalReason}',0,'{DateTime.Now}','{data.expectReturnPlace}',3,{dutyStatus},2,'{data.deputyDutySerialNumber}',ServiceStatus,'{data.deputyUnusalReason}' from Y_ServiceTicketUnusual where ServiceTiceketID={data.id} and ((DeputyDriverCard is not null) or DeputyDriverCard !='') order by Create_Time desc";
+                    sqls.Add(sql3);
+                    //str1 = $" DeputyDriverStatus={data.deputyStatus},DeputyReturnStatus='{data.deputyReturnStatus}',Status={data.status},DeputyOffDutyDays={instr},DeputyFillUser='{data.deputyFillUser}',DeputyFillTime='{DateTime.Now}',DeputyExpectShipmentTime='{data.deputyExpectNextShipmentTime}',DeputyFillAdrress='{data.deputyDriverFillAddress}',DeputyOffDutyReason='{data.offDutyReason}',DeputyLongitude='{data.deputyLongitude}',Deputylatitude='{data.deputylatitude}',DeputyOffDutyType='{data.offDutyType}',DeputyExpiryCertificate='{data.expiryCertificate}',DeputyFreightGroup='{data.freightGroup}'";
+                    var sql =
+                        $"update Y_ServiceTicket set DeputyApprovalStatus=3,DeputyDutyApproveStatus={dutyStatus} where id={data.id}";
+                    sqls.Add(sql);
+                    //sql3 = $"update Y_ServiceTicket set DeputyApprovalStatus=3{dutyStatus} where id={data.id}";
+                    //sqls.Add(sql3);
+                }
+                db.ExecuteTransWithSubTableReturnOid(sqls);
+                if ((string.IsNullOrEmpty(data.serviceSerialNumber) && isMainDriver == 1) || (string.IsNullOrEmpty(data.deputyServiceSerialNumber) && isMainDriver==2))
+                {
+                    var serialNumber = "";
+                    var createAt = "";
+                    var processName = "休班请假申请-司机";
+                    var typ = 0;
+                    var sql = "";
+                    isType resultt;
+                    if (isMainDriver == 1)
+                    {
+                        serialNumber = data.dutySerialNumber;
+                        createAt = data.serviceBPMCreateTime;
+                        sql = $"select count(*) as num from Y_ServiceTicketUnusual where FillType=1 and ServiceSerialNumber='{data.serviceSerialNumber}'";
+                    }
+                    else if (isMainDriver == 2)
+                    {
+                        serialNumber = data.deputyDutySerialNumber;
+                        createAt = data.deputyServiceBPMCreateTime;
+                        sql = $"select count(*) as num from Y_ServiceTicketUnusual where FillType=2 and ServiceSerialNumber='{data.deputyServiceSerialNumber}'";
+                    }
+                    resultt = db.QueryOne<isType>(sql);
+                    if (resultt.num == 0)
+                    {
+                        typ = 1;
+                    }
+
+                    UpdateBPMTask(data.wechat, serialNumber, createAt, processName, data.isUnusal, "", typ);
+                }
+                if (data.returnStatus == "休班/请假" || data.deputyReturnStatus == "休班/请假")
+                {
+                    data.isUnusal = 3;
+                    GeneratePostXML_OrderSend(data);
+                    var serialNumber = "";
+                    var createAt = "";
+                    var processName = "休班请假申请-司机";
+                    if(!string.IsNullOrEmpty(data.dutySerialNumber) || !string.IsNullOrEmpty(data.deputyDutySerialNumber))
+                    {
+                        var typ = 0;
+                        var sql = "";
+                        isType resultt;
+                        if (isMainDriver == 1)
+                        {
+                            serialNumber = data.serviceSerialNumber;
+                            createAt = data.dutyBPMCreateTime;
+
+                            sql = $"select count(*) as num from Y_ServiceTicketUnusual where FillType=1 and ServiceSerialNumber='{data.serviceSerialNumber}'";
+                        }
+                        else if (isMainDriver == 2)
+                        {
+                            serialNumber = data.deputyServiceSerialNumber;
+                            createAt = data.deputyDutyBPMCreateTime;
+                            sql = $"select count(*) as num from Y_ServiceTicketUnusual where FillType=2 and DeputyServiceSerialNumber='{data.deputyServiceSerialNumber}'";
+                        }
+                        resultt = db.QueryOne<isType>(sql);
+                        if (resultt.num == 0)
+                        {
+                            typ = 1;
+                        }
+                       
+                        UpdateBPMTask(data.wechat, serialNumber, createAt, processName, data.isUnusal, "休班/请假", typ);
+                    }
+                }
+                else
+                {
+                    data.isUnusal = 1;
+                    GeneratePostXML_OrderSend(data);
+                    var serialNumber = "";
+                    var createAt = "";
+                    var processName = "司机服务单异常处理";
+                    if(!string.IsNullOrEmpty(data.serviceSerialNumber) || !string.IsNullOrEmpty(data.deputyServiceSerialNumber))
+                    {
+                        var typ = 0;
+                        var sql = "";
+                        isType resultt;
+                        if (isMainDriver == 1)
+                        {
+                            serialNumber = data.serviceSerialNumber;
+                            createAt = data.serviceBPMCreateTime;
+                            sql = $"select count(*) as num from Y_ServiceTicketUnusual where FillType=1 and ServiceSerialNumber='{data.serviceSerialNumber}'";
+                        }
+                        else if (isMainDriver == 2)
+                        {
+                            serialNumber = data.deputyServiceSerialNumber;
+                            createAt = data.deputyServiceBPMCreateTime;
+                            sql = $"select count(*) as num from Y_ServiceTicketUnusual where FillType=2 and ServiceSerialNumber='{data.deputyServiceSerialNumber}'";
+                        }
+                        resultt = db.QueryOne<isType>(sql);
+                        if (resultt.num == 0)
+                        {
+                            typ = 1;
+                        }
+
+                        UpdateBPMTask(data.wechat, serialNumber, createAt, processName, data.isUnusal, "",typ);
+                    }
+                }
+                
+                this.LogUser("UpdateServiceTicketUnusal", "HttpPost", "新增/更新异常服务单");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        //public void getkey()
+        //{
+
+        //    string SQL_GetList = "select keyname,keyvalue,keytime from y_wxkey where AgentId=1000037 or keyname='jsapi_ticketStr' order by id desc ";
+
+        //    var db = GetDbSqlHelper();
+        //    var mxtb = db.QueryDynamicList(SQL_GetList);
+
+        //    Session["tokenValue"] = mxtb[0]["keyvalue"].ToString().Trim();
+        //    this.Session["jsapi_ticketStr"] = mxtb[1]["keyvalue"].ToString().Trim();
+        //    this.Session["keytime"] = mxtb[0]["keytime"].ToString().Trim();
+
+
+        //}
+
+        ///<summary>
+        ///调用企业微信jssdk
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("ServiceWXInitConfig")]
+        public IActionResult initConfig([FromBody] RequestWXConfig data)
+        {
+            try
+            {
+                var result = new ResponseWXConfig();
+                var st = 0;
+                var getToken = new ResponseToken();
+                var accessToken = "";
+                var jsapi_ticket = "";
+                var db = GetDbSqlHelper();
+                var sqls = new List<string>();
+                getToken = GetQYToken();
+                try
+                {
+                    if (Convert.ToDateTime(getToken.keytime).AddSeconds(7000) < DateTime.Now)
+                    {
+                        st = 1;
+                    }
+                    else if (Convert.ToDateTime(getToken.keytime1).AddSeconds(7000) < DateTime.Now)
+                    {
+                        st = 2;
+                    }
+                }
+                catch
+                {
+                    //ClientScript.RegisterStartupScript(ClientScript.GetType(), "myscript", "<script type=\"text/javascript\">  mapopen();  </script>");
+
+                }
+                if (st > 0)
+                {
+                    var accessTokenStr = getToken.tokenValue;
+                    if (st == 1) {
+                    Access_token token = JsSdk.GetAccessToken();
+                    accessToken = token.access_token;
+                    var expec = DateTime.Now.AddSeconds(Convert.ToInt32(token.expires_in)).ToString();
+                    var sql = $"Update y_wxkey Set keyvalue='{accessToken}',keytime ='{expec}'  where keyname='tokenValue'  and AgentId=1000016 and 1=1";
+                    sqls.Add(sql);
+                        accessTokenStr = accessToken;
+
+
+                    }
+                    
+                        
+                    jsapi_ticket = JsSdk.RequestJsapi_ticket(accessTokenStr);
+                    var sql1 = $"Update y_wxkey Set keyvalue='{jsapi_ticket}',keytime ='{DateTime.Now.ToString()}' where keyname='jsapi_ticketStr' and 2=2";
+                    sqls.Add(sql1);
+                    int returnId = db.ExecuteTransWithSubTableReturnOid(sqls);
+
+                }
+                else
+                {
+                    jsapi_ticket = getToken.jsapi_ticketStr;
+                }
+
+                string nonceStr = JsSdk.CreateNonceStr();
+                long timestamp = JsSdk.GetCurrentUinxTime();
+                string signature = JsSdk.GetSignature(jsapi_ticket, nonceStr, timestamp, data.url);
+                result.data = new ResponseWXConfigItem();
+                result.data.appId = GlobalVar.CorpId;
+                result.data.timestamp = timestamp;
+                result.data.nonceStr = nonceStr;
+                result.data.signature = signature;
+
+                this.LogUser("requestJsSdk", "HttpPost", "请求微信信息");
+                result.code = 200;
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+
+        ///<summary>
+        ///调用企业微信jssdk
+        /// </summary>
+        /// <returns></returns>
+        //[HttpPost]
+        //[Route("ServiceWXInitConfig")]
+        //public IActionResult initConfig([FromBody] RequestWXConfig data)
+        //{
+        //    try
+        //    {
+        //        var result = new ResponseWXConfig();
+
+        //        Access_token token = JsSdk.GetAccessToken();
+        //        string accessToken = token.access_token;
+        //        string jsapi_ticket = JsSdk.RequestJsapi_ticket(accessToken);
+        //        string nonceStr = JsSdk.CreateNonceStr();
+        //        long timestamp = JsSdk.GetCurrentUinxTime();
+        //        string signature = JsSdk.GetSignature(jsapi_ticket, nonceStr, timestamp, data.url);
+        //        result.data = new ResponseWXConfigItem();
+        //        result.data.appId = GlobalVar.CorpId;
+        //        result.data.timestamp = timestamp;
+        //        result.data.nonceStr = nonceStr;
+        //        result.data.signature = signature;
+
+        //        this.LogUser("requestJsSdk", "HttpPost", "请求微信信息");
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        this.LogError(ex);
+        //        return StatusCode(500, ex);
+        //    }
+        //}
+        ///<param name=""></param>
+        ///<summary>
+        ///查询数据库中token、ticket、keytime
+        /// </summary>
+        /// <returns>result</returns>
+        private ResponseToken GetQYToken()
+        {
+            var result = new ResponseToken();
+            var db = GetDbSqlHelper();
+            var sql = $"select keyname,keyvalue,keytime from y_wxkey where AgentId=1000016 or keyname='jsapi_ticketStr' order by id ";
+            var list = db.QueryDynamicList(sql);
+            result.tokenValue = list[0].keyvalue;
+            result.jsapi_ticketStr = list[1].keyvalue.Replace(" ", "");
+            result.keytime = Convert.ToString(list[0].keytime);
+            result.keytime1 = Convert.ToString(list[1].keytime);
+            return result;
+        }
+        //发送请假审批
+        //非静态static
+        private string GeneratePostXML_OrderSend(AddServiceTicketRequest data)
+        {
+            var dutySerialNumber = $"{Guid.NewGuid()}";
+            var serviceSerialNumber = $"{Guid.NewGuid()}";
+
+            var db = GetDbSqlHelper();
+            var messageDriver = "";
+            var isMainDriver = IsMainDriver(data.wechat);
+            var isDoubleDriver = IsDoubleDriver(Convert.ToInt32(data.id));
+            if (isDoubleDriver == 1 && isMainDriver == 1)
+                messageDriver = data.deputyDriverWechat;
+            if (isDoubleDriver == 1 && isMainDriver == 2)
+                messageDriver = data.mainDriverWechat;
+            var updateSql = "";
+            var updateUnSql = "";
+            var proClass = GetProductClassName(data.id,data.expectNextShipmentClass);
+
+            //设置Header
+            DataTable tableHeader = new DataTable("Header");
+            tableHeader.Columns.Add(new DataColumn("Method", typeof(string)));
+            tableHeader.Columns.Add(new DataColumn("ProcessName", typeof(string)));
+            tableHeader.Columns.Add(new DataColumn("Action", typeof(string)));
+            tableHeader.Columns.Add(new DataColumn("OwnerAccount", typeof(string)));
+            tableHeader.Columns.Add(new DataColumn("UploadFileGuid", typeof(string)));
+            tableHeader.Columns.Add(new DataColumn("ProcessVersion", typeof(string)));
+            DataRow rowHeader = tableHeader.NewRow();
+
+            //string fullname = ConfigurationManager.AppSettings["OwnerMemberFullName"].ToString(); ;//发起人全路径         
+            //string createaccount = ConfigurationManager.AppSettings["UID"].ToString(); ;//提交人账号
+
+            //string fullname = "BPMOU://万华华悦/质量与流程IT部/系统管理员"; ;//发起人全路径   
+            //string fullname = "系统管理员"; ;//发起人全路径   
+            string createaccount = "18660034525"; ;//提交人账号  XUYAODONGTAIHUOQU
+
+            //设置Header数据
+            //设置Header数据
+            rowHeader["Method"] = "Post";
+            rowHeader["ProcessName"] = "休班请假申请-司机-触发";
+            //rowHeader["ProcessName"] = "触发器";
+            rowHeader["Action"] = "提交";//提交线名称
+            //rowHeader["OwnerMemberFullName"] = createaccount;
+            rowHeader["OwnerAccount"] = createaccount;
+
+            rowHeader["ProcessVersion"] = "1.0";//版本号
+            tableHeader.Rows.Add(rowHeader);
+
+
+            //设置表单数据
+            DataSet formDataSet = new DataSet("FormData");
+
+            ///主表数据
+            DataTable table = new DataTable("Y_xiubanqingjiasiji");
+            //定义行
+            table.Columns.Add(new DataColumn("liushuihao", typeof(string)));
+            table.Columns.Add(new DataColumn("yichangliushuihao", typeof(string)));
+            table.Columns.Add(new DataColumn("isMainDriver", typeof(string)));
+            table.Columns.Add(new DataColumn("fenzu", typeof(string)));
+            table.Columns.Add(new DataColumn("qingjiashijian", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("waichuxuexi", typeof(decimal)));
+            table.Columns.Add(new DataColumn("xiuban", typeof(decimal)));
+            table.Columns.Add(new DataColumn("shijia", typeof(decimal)));
+            table.Columns.Add(new DataColumn("bingjia", typeof(decimal)));
+            table.Columns.Add(new DataColumn("naxinzheng", typeof(decimal)));
+            table.Columns.Add(new DataColumn("zhengjiandaoqi", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("hunjia", typeof(decimal)));
+            table.Columns.Add(new DataColumn("peichanjia", typeof(decimal)));
+            table.Columns.Add(new DataColumn("heji", typeof(decimal)));
+            table.Columns.Add(new DataColumn("qingjiayuanyin", typeof(string)));
+            table.Columns.Add(new DataColumn("tijiaoren", typeof(string)));
+
+            table.Columns.Add(new DataColumn("customer", typeof(string)));
+            table.Columns.Add(new DataColumn("shipmentTrackingNO", typeof(string)));
+            table.Columns.Add(new DataColumn("thisServiceStatus", typeof(string)));
+            table.Columns.Add(new DataColumn("plateNumber", typeof(string)));
+            table.Columns.Add(new DataColumn("mainDriverName", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyDriverName", typeof(string)));
+            table.Columns.Add(new DataColumn("productName", typeof(string)));
+            table.Columns.Add(new DataColumn("expectReturnPlace", typeof(string)));
+            table.Columns.Add(new DataColumn("planReturnTime", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("expectReturnPlaceTime", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("returnStatus", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyReturnStatus", typeof(string)));
+            table.Columns.Add(new DataColumn("mainDriverOffDutyType", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyOffDutyType", typeof(string)));
+            table.Columns.Add(new DataColumn("offDutyDays", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyOffDutyDays", typeof(string)));
+            table.Columns.Add(new DataColumn("offDutyReason", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyOffDutyReaon", typeof(string)));
+            table.Columns.Add(new DataColumn("repairDescription", typeof(string)));
+            table.Columns.Add(new DataColumn("expectNextShipmentTime", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("deputyExpectNextShipmentTime", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("expectNextShipmentClass", typeof(string)));
+            table.Columns.Add(new DataColumn("mainDriverAddress", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyAddress", typeof(string)));
+            table.Columns.Add(new DataColumn("unusualType", typeof(string)));
+            table.Columns.Add(new DataColumn("unusualReason", typeof(string)));
+            //先前数据
+            table.Columns.Add(new DataColumn("expectReturnPlaceTimeOld", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("returnStatusOld", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyReturnStatusOld", typeof(string)));
+            table.Columns.Add(new DataColumn("offDutyDaysOld", typeof(decimal)));
+            table.Columns.Add(new DataColumn("offDutyReasonOld", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyOffDutyDaysOld", typeof(decimal)));
+            table.Columns.Add(new DataColumn("deputyOffDutyReaonOld", typeof(string)));
+            table.Columns.Add(new DataColumn("repairDescriptionOld", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyExpectNextShipmentTimeOld", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("expectNextShipmentTimeOld", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("expectNextShipmentClassOld", typeof(string)));
+            table.Columns.Add(new DataColumn("mainDriverOffDutyTypeOld", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyOffDutyTypeOld", typeof(string)));
+            table.Columns.Add(new DataColumn("expiryCertificateOld", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("deputyExpiryCertificateOld", typeof(DateTime)));
+            table.Columns.Add(new DataColumn("freightGroupOld", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyFreightGroupOld", typeof(string)));
+            table.Columns.Add(new DataColumn("mainDriverWechat", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyDriverWechat", typeof(string)));
+            table.Columns.Add(new DataColumn("isUnusal", typeof(int)));
+            table.Columns.Add(new DataColumn("mainDriverAddressOld", typeof(string)));
+            table.Columns.Add(new DataColumn("deputyAddressOld", typeof(string)));
+            table.Columns.Add(new DataColumn("productClass", typeof(string)));
+            table.Columns.Add(new DataColumn("productClassOld", typeof(string)));
+            table.Columns.Add(new DataColumn("serviceId", typeof(string)));
+            table.Columns.Add(new DataColumn("isDoubleDriver", typeof(int)));
+            table.Columns.Add(new DataColumn("messageDriver", typeof(string)));
+
+
+            //table.Columns.Add(new DataColumn("tibanrenyuan", typeof(string)));
+            //table.Columns.Add(new DataColumn("yuanyinfenxi", typeof(string)));
+            //table.Columns.Add(new DataColumn("xiaojiariqi", typeof(DateTime)));
+            //table.Columns.Add(new DataColumn("saomiaozhengjian", typeof(string)));
+            //table.Columns.Add(new DataColumn("weihushuju", typeof(string)));
+
+
+            DataRow row = table.NewRow();
+
+            row["liushuihao"] = dutySerialNumber;
+            row["yichangliushuihao"] = serviceSerialNumber;
+            row["isMainDriver"] = isMainDriver;
+                row["fenzu"] = data.freightGroup;
+            row["qingjiashijian"] = Convert.ToDateTime(data.expectReturnPlaceTime);
+            if (data.offDutyType == "外出学习")
+                row["waichuxuexi"] = Convert.ToDecimal(data.offDutyDays);
+            else
+                row["waichuxuexi"] = 0;
+            if (data.offDutyType == "休班")
+                row["xiuban"] = Convert.ToDecimal(data.offDutyDays);
+            else
+                row["xiuban"] = 0;
+            if (data.offDutyType == "事假")
+                row["shijia"] = Convert.ToDecimal(data.offDutyDays);
+            else
+                row["shijia"] = 0;
+            if (data.offDutyType == "病假")
+                row["bingjia"] = Convert.ToDecimal(data.offDutyDays);
+            else
+                row["bingjia"] = 0;
+            if (data.offDutyType == "旧证换新证(去拿新证)")
+            {
+                row["naxinzheng"] = Convert.ToDecimal(data.offDutyDays);
+                row["zhengjiandaoqi"] = Convert.ToDateTime(data.expiryCertificate);
+            }
+            else
+            {
+                row["naxinzheng"] = 0;
+                row["zhengjiandaoqi"] = "1900-01-01";
+            }
+            if (data.offDutyType == "婚嫁")
+                row["hunjia"] = Convert.ToDecimal(data.offDutyDays);
+            else
+                row["hunjia"] = 0;
+            if (data.offDutyType == "陪产假")
+                row["peichanjia"] = Convert.ToDecimal(data.offDutyDays);
+            else
+                row["peichanjia"] = 0;
+            if(isMainDriver==1)
+                row["heji"] = Convert.ToDecimal(data.offDutyDays);
+            else if(isMainDriver==2)
+                row["heji"] = Convert.ToDecimal(data.deputyOffDutyDays);
+            row["qingjiayuanyin"] = data.offDutyReason;
+            row["tijiaoren"] = "18660034525";
+
+            row["customer"] = data.customer;
+            row["shipmentTrackingNO"] = data.shipmentTrackingNO;
+            row["thisServiceStatus"] = data.thisServiceStatus;
+            row["plateNumber"] = data.plateNumber;
+            row["mainDriverName"] = data.mainDriverName;
+            row["deputyDriverName"] = data.deputyDriverName;
+            row["productName"] = data.productName;
+            row["expectReturnPlace"] = data.expectReturnPlace;
+            row["planReturnTime"] = data.planReturnTime == null ? "1900-01-01" : data.planReturnTime;
+            row["expectReturnPlaceTime"] = data.expectReturnPlaceTime == null ? "1900-01-01" : data.expectReturnPlaceTime;
+            row["returnStatus"] = data.returnStatus == null ? "" : data.returnStatus;
+            row["deputyReturnStatus"] = data.deputyReturnStatus;
+            row["mainDriverOffDutyType"] = data.offDutyType;
+            row["deputyOffDutyType"] = data.deputyOffDutyType;
+            row["offDutyDays"] = data.offDutyDays == null ? "0" : data.offDutyDays;
+            row["deputyOffDutyDays"] = data.deputyOffDutyDays;
+            row["offDutyReason"] = data.offDutyReason;
+            row["deputyOffDutyReaon"] = data.deputyOffDutyReason;
+            row["repairDescription"] = data.repairDescription;
+            row["expectNextShipmentTime"] = (data.expectNextShipmentTime == "" || data.expectNextShipmentTime == null) ? "1900-01-01" : data.expectNextShipmentTime;
+            row["deputyExpectNextShipmentTime"] = (data.deputyExpectNextShipmentTime == ""|| data.deputyExpectNextShipmentTime == null) ? "1900-01-01" : data.deputyExpectNextShipmentTime;
+            row["expectNextShipmentClass"] = data.expectNextShipmentClass;
+            row["mainDriverAddress"] = data.mainDriverFillAddress;
+            row["deputyAddress"] = data.deputyDriverFillAddress;
+            row["unusualType"] = data.unusalType;
+            row["unusualReason"] = data.unusalReason;
+            //先前数据
+            row["expectReturnPlaceTimeOld"] = data.expectReturnPlaceTimeOld == null ? "1900-01-01" : data.expectReturnPlaceTimeOld;
+            row["returnStatusOld"] = data.returnStatusOld;
+            row["deputyReturnStatusOld"] = data.deputyReturnStatusOld;
+            row["offDutyDaysOld"] = Convert.ToDecimal(data.offDutyDaysOld == null ? "0" : data.offDutyDaysOld);
+            row["offDutyReasonOld"] = data.offDutyReasonOld;
+            row["deputyOffDutyDaysOld"] = Convert.ToDecimal(data.deputyOffDutyDaysOld == null ? "0" : data.deputyOffDutyDaysOld);
+            row["deputyOffDutyReaonOld"] = data.deputyOffDutyReaonOld;
+            row["repairDescriptionOld"] = data.repairDescriptionOld;
+            row["deputyExpectNextShipmentTimeOld"] = data.deputyExpectNextShipmentTimeOld == null ? "1900-01-01" : data.deputyExpectNextShipmentTimeOld;
+            row["expectNextShipmentTimeOld"] = data.expectNextShipmentTimeOld == null ? "1900-01-01" : data.expectNextShipmentTimeOld;
+            row["expectNextShipmentClassOld"] = data.expectNextShipmentClassOld;
+            row["mainDriverOffDutyTypeOld"] = data.mainDriverOffDutyTypeOld;
+            row["deputyOffDutyTypeOld"] = data.deputyOffDutyTypeOld;
+            row["expiryCertificateOld"] = data.expiryCertificateOld == null ? "1900-01-01" : data.expiryCertificateOld;
+            row["deputyExpiryCertificateOld"] = data.deputyExpiryCertificateOld == null ? "1900-01-01" : data.deputyExpiryCertificateOld;
+            row["freightGroupOld"] = data.freightGroupOld;
+            row["deputyFreightGroupOld"] = data.deputyFreightGroupOld;
+            row["mainDriverWechat"] = data.mainDriverWechat;
+            row["deputyDriverWechat"] = data.deputyDriverWechat;
+            row["isUnusal"] = data.isUnusal;
+            row["mainDriverAddressOld"] = data.mainDriverFillAddressOld;
+            row["deputyAddressOld"] = data.deputyDriverFillAddressOld;
+            row["productClass"] = proClass;
+            row["productClassOld"] = data.productClassOld;
+            row["serviceId"] = data.id;
+            row["isDoubleDriver"] = isDoubleDriver;
+            row["messageDriver"] = messageDriver;
+
+
+            //row["tibanrenyuan"] = "";
+            //row["yuanyinfenxi"] = "";
+            //row["xiaojiariqi"] = "1900-01-01";
+            //row["saomiaozhengjian"] = "";
+            //row["weihushuju"] = "";
+            table.Rows.Add(row);
+
+            formDataSet.Tables.Add(table);
+
+            //生成XML
+            StringBuilder sb = new StringBuilder();
+            StringWriter w = new StringWriter(sb);
+
+            w.WriteLine("<?xml version=\"1.0\"?>");
+            w.WriteLine("<XForm>");
+            tableHeader.WriteXml(w, XmlWriteMode.IgnoreSchema, false);
+            formDataSet.WriteXml(w);
+            w.WriteLine("</XForm>");
+
+            w.Close();
+
+            String xmlData = sb.ToString();
+            xmlData = xmlData.Replace("<DocumentElement>", "");
+            xmlData = xmlData.Replace("</DocumentElement>", "");
+            //Log4Txt.WriteLog(xmlData);
+            MemoryStream xmlStream = new MemoryStream(UTF8Encoding.UTF8.GetBytes(xmlData));
+            //扩展名
+            var extName = ".xml";
+            //新文件名
+            var shortfilename = $"{Guid.NewGuid()}{extName}";
+            //ftp用户名和密码
+            var username = "tangdejun";
+            var password = "Hy1912";
+            var sqls = new List<string>();
+            WebRequest request = WebRequest.Create("ftp://10.10.122.51:21/" + shortfilename + "");
+            request.Method = WebRequestMethods.Ftp.UploadFile;
+            request.Credentials = new NetworkCredential(username, password);
+            using (Stream ftpStream = request.GetRequestStream())
+            {
+                xmlStream.CopyTo(ftpStream);
+                //主驾异常不带请假
+                if (data.isUnusal == 1 && isMainDriver == 1)
+                {
+                    updateSql = $"update Y_ServiceTicket set ServiceSerialNumber='{serviceSerialNumber}',ServiceBPMCreateTime='{DateTime.Now}' where id={data.id}";
+                    sqls.Add(updateSql);
+                    updateUnSql = $"update Y_ServiceTicketUnusual set ServiceSerialNumber='{serviceSerialNumber}',DutySerialNumber='' where ServiceTiceketID={data.id} and ((MainDriverCard is not null) or MainDriverCard!='') and isnull(IsFilled,0)=0";
+                    sqls.Add(updateUnSql);
+                }
+                //副驾异常不带请假
+                else if (data.isUnusal == 1 && isMainDriver == 2)
+                {
+                    updateSql = $"update Y_ServiceTicket set DeputyServiceSerialNumber='{serviceSerialNumber}',DeputyServiceBPMCreateTime='{DateTime.Now}' where id={data.id}";
+                    sqls.Add(updateSql);
+                    updateUnSql = $"update Y_ServiceTicketUnusual set DeputyServiceSerialNumber='{serviceSerialNumber}',DutySerialNumber='' where ServiceTiceketID={data.id} and ((DeputyDriverCard is not null) or DeputyDriverCard!='') and isnull(IsFilled,0)=0";
+                    sqls.Add(updateUnSql);
+                }
+                //主驾请假
+                else if (data.isUnusal == 2 && isMainDriver == 1)
+                {
+                    updateSql = $"update Y_ServiceTicket set DutySerialNumber='{dutySerialNumber}',DutyBPMCreateTime='{DateTime.Now}' where id={data.id}";
+                    sqls.Add(updateSql);
+                    updateUnSql = $"update Y_ServiceTicketUnusual set DutySerialNumber='{dutySerialNumber}' where ServiceTiceketID={data.id}  and ((MainDriverCard is not null) or MainDriverCard!='') and isnull(IsFilled,0)=0";
+                    sqls.Add(updateUnSql);
+                }
+                //副驾请假
+                else if (data.isUnusal == 2 && isMainDriver == 2)
+                {
+                    updateSql = $"update Y_ServiceTicket set DeputyDutySerialNumber='{dutySerialNumber}',DeputyDutyBPMCreateTime='{DateTime.Now}' where id={data.id}";
+                    sqls.Add(updateSql);
+                    updateUnSql = $"update Y_ServiceTicketUnusual set DeputyDutySerialNumber='{dutySerialNumber}' where ServiceTiceketID={data.id} and ((DeputyDriverCard is not null) or DeputyDriverCard!='') and isnull(IsFilled,0)=0";
+                    sqls.Add(updateUnSql);
+                }
+                //主驾异常带请假
+                else if (data.isUnusal == 3 && isMainDriver == 1)
+                {
+                    updateSql = $"update Y_ServiceTicket set ServiceSerialNumber='{serviceSerialNumber}',DutySerialNumber='{dutySerialNumber}',ServiceBPMCreateTime='{DateTime.Now}',DutyBPMCreateTime='{DateTime.Now}' where id={data.id}";
+                    sqls.Add(updateSql);
+                    updateUnSql = $"update Y_ServiceTicketUnusual set ServiceSerialNumber='{serviceSerialNumber}',DutySerialNumber='{dutySerialNumber}' where ServiceTiceketID={data.id}  and ((MainDriverCard is not null) or MainDriverCard!='') and isnull(IsFilled,0)=0";
+                    sqls.Add(updateUnSql);
+                }
+                //副驾异常带请假
+                else if (data.isUnusal == 3 && isMainDriver == 2)
+                {
+                    updateSql = $"update Y_ServiceTicket set DeputyServiceSerialNumber='{serviceSerialNumber}',DeputyDutySerialNumber='{dutySerialNumber}',DeputyServiceBPMCreateTime='{DateTime.Now}',DutyBPMCreateTime='{DateTime.Now}' where id={data.id}";
+                    sqls.Add(updateSql);
+                    updateUnSql = $"update Y_ServiceTicketUnusual set DeputyServiceSerialNumber='{serviceSerialNumber}',DeputyDutySerialNumber='{dutySerialNumber}' where ServiceTiceketID={data.id} and ((DeputyDriverCard is not null) or DeputyDriverCard!='') and isnull(IsFilled,0)=0";
+                    sqls.Add(updateUnSql);
+                }
+                db.ExecuteTransWithSubTableReturnOid(sqls);
+
+            }
+            //var sql = $"update Y_ServiceTicket set DutySerialNumber='{dutySerialNumber}',DutyBPMCreateTime='{DateTime.Now}' where id={data.id}";
+            //db.Execute(sql);
+            //using (BPMConnection cn = new BPMConnection())
+            //{
+            //    cn.Open("10.10.122.51", "系统管理员", "yiteng@123", 1580);//1590是BPM端口号
+            //    PostResult result = BPMProcess.Post(cn, xmlStream);
+            //    string rv = String.Format("True-{0}", result.SN);
+            //}
+            return xmlData;
+        }
+
+        ///<param name=""></param>
+        ///<summary>
+        ///测试撤销更新BPM流程和插入新的记录
+        /// </summary>
+        /// <returns>string ids</returns>
+        public string UpdateBPMTask(string wechat,string serialNumber,string createAt,string processName,int isUnusal, string duty,int state)
+        {
+            var result = "";
+            var db = BPMGetDbSqlHelper();
+            var sql = "";
+            var sql1 = "";
+            var sql2 = "";
+            var sql3 = "";
+            var sql4 = "";
+            var sql5 = "";
+            var sqls = new List<string>();
+            responseBPMInfo taskContent = GetTaskID(serialNumber,isUnusal,duty,state);
+            if (taskContent != null)
+            {
+                if (taskContent.taskID != 0)
+                {
+
+
+                    var context = "{\"Routing\":{}}";
+                    var context1 = "{\"Routing\":{\"RoutingType\":\"Parallel\",\"ThreadID\":null,\"Uids\":[],\"Positions\":{}}}";
+                    if (!string.IsNullOrEmpty(wechat))
+                    {
+                        if (taskContent.unusalSatus == "Running")
+                        {
+                            sql = $"UPDATE BPMInstTasks SET Description=NULL,FinishAt=NULL,State='Aborted',OwnerAccount=NULL,AgentAccount=NULL,OwnerPositionID=NULL,OptUser={wechat},OptAt='{DateTime.Now}',OptMemo='Running',Context='{context}' WHERE TaskID={taskContent.taskID}";
+                            sqls.Add(sql);
+                            sql1 = $"INSERT INTO BPMInstProcSteps(TaskID, ProcessName, ProcessVersion, NodeName, OwnerPositionID, OwnerAccount, ReceiveAt, AgentAccount, FinishAt, SelAction, Share, Memo, Comments, HumanStep, Posted, FormSaved, SubNodeName, AutoProcess, BatchApprove, HandlerAccount, UsedMinutes, UsedMinutesWork, RecedeFromStep, TimeoutNotifyCount, RisedConsignID, BelongConsignID, ConsignOwnerAccount, TimeoutFirstNotifyDate, TimeoutDeadline, StandardMinutesWork, NodePath, ParentStepID, ExtYear, Context, ExtDeleted) VALUES({taskContent.taskID}, '{processName}', '1.0', 'sysTaskOpt', NULL, {wechat}, '{DateTime.Now}', NULL, '{DateTime.Now}', 'sysAbort', 0, 'Running', '', 1, 0, 0, NULL, 0, 0, {wechat}, 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 2020, '{context1}', 0)";
+                            sqls.Add(sql1);
+                        }
+                        if (taskContent.qjdID > 0 && taskContent.qjdSatus == "Running")
+                        {
+                            sql4 = $"UPDATE BPMInstTasks SET Description=NULL,FinishAt=NULL,State='Aborted',OwnerAccount=NULL,AgentAccount=NULL,OwnerPositionID=NULL,OptUser={wechat},OptAt='{DateTime.Now}',OptMemo='Running',Context='{context}' WHERE TaskID={taskContent.qjdID}";
+                            sqls.Add(sql4);
+                            sql5 = $"INSERT INTO BPMInstProcSteps(TaskID, ProcessName, ProcessVersion, NodeName, OwnerPositionID, OwnerAccount, ReceiveAt, AgentAccount, FinishAt, SelAction, Share, Memo, Comments, HumanStep, Posted, FormSaved, SubNodeName, AutoProcess, BatchApprove, HandlerAccount, UsedMinutes, UsedMinutesWork, RecedeFromStep, TimeoutNotifyCount, RisedConsignID, BelongConsignID, ConsignOwnerAccount, TimeoutFirstNotifyDate, TimeoutDeadline, StandardMinutesWork, NodePath, ParentStepID, ExtYear, Context, ExtDeleted) VALUES({taskContent.qjdID}, '{processName}', '1.0', 'sysTaskOpt', NULL, {wechat}, '{DateTime.Now}', NULL, '{DateTime.Now}', 'sysAbort', 0, 'Running', '', 1, 0, 0, NULL, 0, 0, {wechat}, 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 2020, '{context1}', 0)";
+                            sqls.Add(sql5);
+                        }
+                        if (taskContent.ParentSatus == "Running")
+                        {
+                            sql2 = $"UPDATE BPMInstTasks SET Description=NULL,FinishAt=NULL,State='Aborted',OwnerAccount=NULL,AgentAccount=NULL,OwnerPositionID=NULL,OptUser={wechat},OptAt='{DateTime.Now}',OptMemo='Running',Context='{context}' WHERE  TaskID={taskContent.parentID} and state='running'";
+                            sqls.Add(sql2);
+                            sql3 = $"INSERT INTO BPMInstProcSteps(TaskID, ProcessName, ProcessVersion, NodeName, OwnerPositionID, OwnerAccount, ReceiveAt, AgentAccount, FinishAt, SelAction, Share, Memo, Comments, HumanStep, Posted, FormSaved, SubNodeName, AutoProcess, BatchApprove, HandlerAccount, UsedMinutes, UsedMinutesWork, RecedeFromStep, TimeoutNotifyCount, RisedConsignID, BelongConsignID, ConsignOwnerAccount, TimeoutFirstNotifyDate, TimeoutDeadline, StandardMinutesWork, NodePath, ParentStepID, ExtYear, Context, ExtDeleted) VALUES({taskContent.parentID}, '{processName}', '1.0', 'sysTaskOpt', NULL, {wechat}, '{DateTime.Now}', NULL, '{DateTime.Now}', 'sysAbort', 0, 'Running', '', 1, 0, 0, NULL, 0, 0, {wechat}, 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 2020, '{context1}', 0)";
+                            sqls.Add(sql3);
+                        }
+                        db.ExecuteTransWithSubTableReturnOid(sqls);
+                        result = "1";
+                    }
+                    else
+                    {
+                        result = "0";
+                    }
+                }
+            }
+            return result;
+        }
+    }
+}

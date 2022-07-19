@@ -1,0 +1,196 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using YiTeng.Controllers.Base;
+using YiTeng.Framework.Common;
+using YiTeng.Framework.Common.Interfaces;
+using Redis = YiTeng.Controllers.Base.Redis;
+
+namespace YiTeng.WebAPI.MiddleWare
+{
+    /// <summary>
+    ///     验证session的中间件，所有请求进入controller之前都会进到这里验证session
+    ///     只有login方法和swagger文档不验证
+    /// </summary>
+    public class SessionCheckMiddleware : ILogable
+    {
+        private readonly RequestDelegate _next;
+
+        /// <summary>
+        ///     构造函数
+        /// </summary>
+        /// <param name="next"></param>
+        public SessionCheckMiddleware(RequestDelegate next)
+        {
+            _next = next;
+        }
+
+        private bool CheckAdminSessionId(string sessionId)
+        {
+            if (CheckSessionId(sessionId))
+                if (sessionId.StartsWith("gamemaster-"))
+                    return true;
+
+            return false;
+        }
+
+        private bool CheckSessionId(string sessionId)
+        {
+            if (string.IsNullOrEmpty(sessionId))
+                return false;
+            if (sessionId.StartsWith("M-"))
+                return Redis2.Exist(sessionId);
+
+            return Redis.Exist(sessionId);
+        }
+
+        /// <summary>
+        ///     判断Session的地方
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public async Task Invoke(HttpContext context)
+        {
+            if (context.Request.Method == "OPTIONS")
+                await _next.Invoke(context);
+            var url = context.Request.Path.ToString().ToLower();
+            //用户名密码登录的请求，忽略session验证
+
+            if (url.Equals("/login") ||
+                url.Equals("/login/sessionlogin") ||
+                url.StartsWith("/swagger") ||
+                url.StartsWith("/StaticFiles") ||
+                url.Equals("/app/login") ||
+                url.Equals("/app/password") ||
+                url.Equals("/app/confirmversion") ||
+                url.Equals("/getcheckup") ||
+                url.Equals("/m_getcheckup") ||
+                url.Equals("/updatecarinfo") ||
+                url.Equals("/m_updatecarinfo") ||
+                url.Equals("/upload") ||
+                url.Equals("/app/upload") ||
+                url.Equals("/checkupproject") ||
+                url.Equals("/m_checkupproject") ||
+                url.Equals("/addcheckupproject") ||
+                url.Equals("/m_addcheckupproject") ||
+                url.Contains("/staticfiles/upload/") ||
+                url.Contains("/staticfiles/noimge/") ||
+                url.Equals("/checkupprojectdetail") ||
+                url.Equals("/m_checkupprojectdetail") ||
+                url.Equals("/initconfig") ||
+                url.Equals("/m_initconfig") ||
+                url.Equals("/m_updateproitem") ||
+                url.Equals("/m_checkupprojectdetailbyid") ||
+                url.Equals("/getserviceticket") ||
+                url.Equals("/getproductcategory") ||
+                url.Equals("/updateserviceticket") ||
+                url.Equals("/getreturnplace") ||
+                url.Equals("/servicewxinitconfig") ||
+                url.Equals("/servicewxinitconfiglocation") ||
+                url.Equals("/getdriversalary") ||
+                url.Equals("/getserviceticketunusal") ||
+                url.Equals("/getunusaltype") ||
+                url.Equals("/updateserviceticketunusal") ||
+                url.Equals("/gettanklist") ||
+                url.Equals("/gettankinfo") ||
+                url.Equals("/gettankiotype") ||
+                url.Equals("/gettankiotypedetail") ||
+                url.Equals("/getplatenumberlist") ||
+                url.Equals("/getcleanserverlist") ||
+                url.Equals("/orderreceivingdetails") ||
+                url.Equals("/updateorderreceivingdetails") ||
+                url.Equals("/addtankio") ||
+                url.Equals("/getinplacelist") ||
+                url.Equals("/getworkmanagerlist")||
+                url.Equals("/insertlearndetails")||
+                url.Equals("/getwrokmanagedetailstrain")||
+                url.Equals("/getwrokmanageexam")||
+                url.Equals("/insertworkmanageputexamdetails")||
+                url.Equals("/getworkmanagercheckputlist")||
+                url.Equals("/insertworkmanagedetailscheckdetails")||
+                url.Equals("/getcontaineryard")|| 
+                url.Equals("/getcontaineryard1") ||
+                url.Equals("/selectcurrentstepbyobjectid")||
+                url.Equals("/selectallworkmanagedetailscheckdetailsbyputid")||
+                url.Equals("/selectworkmanagecheckputdetailsbystarttime")||
+                url.Equals("/gettankioapply") ||
+                url.Equals("/downloadvoice") ||
+                url.Equals("/staticfiles/upload/mp3") ||
+                url.Equals("/staticfiles/tools/ffmpeg") ||
+                url.Equals("/amrtomp3") ||
+                url.Equals("/getallrandomexam")||
+                url.Equals("/gettankioapplyresponseqx")||
+                url.Equals("/updateresultdescription")||
+                url.Equals("/getbaiducoor")||
+                url.Equals("/getforkliftorderlist") ||
+                url.Equals("/getforkordercount") ||
+                url.Equals("/insertforkliftorderdetails")||
+                url.Equals("/app/appsyskey")||
+                url.Equals("/sendmessges")||
+                url.Equals("/getstorage")||
+                url.Equals("/getstoragecount")||
+                url.Equals("/getregisterlist")||
+                url.Equals("/getregisterclass")||
+                url.Equals("/getpepole")||
+                url.Equals("/insertregister")||
+                url.Equals("/tankiorespose")||
+                url.Equals("/gethoistingorderlist")||
+                url.Equals("/gethoistingcount")||
+                url.Equals("/updatapprove")||
+                url.Equals("/gethoistingmap")||
+                url.Equals("/getresponse")||
+                url.Equals("/getintegrationcarsdriver")||
+                url.Equals("/getexamineclass")||
+                url.Equals("/getexaminebasedata")||
+                url.Equals("/insertexamine")||
+                url.Equals("/getdriverexaminelist")||
+                url.Equals("/getintegrationdriver")||
+                url.Equals("/getexamineintegcount")||
+                url.Equals("/getwxuserinfo")||
+                url.Equals("/getviolationreporting")||
+                url.Equals("/getdriverbywechat")||
+                url.Equals("/insertviolationreporting")||
+                url.Equals("/gethoistingmerit")||
+                url.Equals("/gethoistingsalary"))
+
+                await _next.Invoke(context);
+            else
+                try
+                {
+                    string sessionId = context.Request.Headers["access_token"];
+                    context.Items.Add("SessionId", sessionId);
+                    bool check;
+                    check = CheckSessionId(sessionId);
+
+                    if (check)
+                        await _next.Invoke(context);
+                    else
+                        await context.Response.WriteAsync("{\"scode\":\"802\",\"remark\":\"Token验证失败\"}");
+                }
+                catch (Exception ex)
+                {
+                    this.LogError(ex.Message, ex);
+                    await context.Response.WriteAsync("{\"scode\":\"505\",\"remark\":\"服务端发生错误:" + ex.Message + "\"}");
+                }
+        }
+    }
+
+    /// <summary>
+    ///     注册中间件的类
+    /// </summary>
+    public static class MiddlewareExtensions
+    {
+        /// <summary>
+        ///     注册验证session中间件
+        /// </summary>
+        /// <param name="app"></param>
+        /// <returns></returns>
+        public static IApplicationBuilder UseRequestSessionCheck(this IApplicationBuilder app)
+        {
+            if (app == null)
+                throw new ArgumentNullException(nameof(app));
+            return app.UseMiddleware<SessionCheckMiddleware>();
+        }
+    }
+}

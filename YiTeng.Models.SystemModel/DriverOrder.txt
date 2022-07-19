@@ -1,0 +1,243 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace YiTeng.Models.SystemModel
+{
+    public class DriverOrder
+    {
+        public class GetDriverOrderRequest {
+            public string id { get; set; }
+            public int page { get; set; }
+            public int size { get; set; }
+
+            public string responseQX { get; set; }//权限
+            /// <summary>
+            /// 0未接 ，1已接，2拒接
+            /// </summary>
+
+            public string doc { get; set; }
+
+            public string RefuseReason { get; set; }//拒接原因
+            /// <summary>
+            /// 提交司机微信号
+            /// </summary>
+            public string wechat { get; set; }
+        }
+
+        public class DataItemDriverOrder {
+            public string id { get; set; }
+            /// <summary>
+            ///驾驶员身份证
+            /// </summary>
+            public string identityNO { get; set; }
+
+            //下单时间
+            public string AddTime { get; set; }
+
+            //车牌号
+            public string PlateNumber { get; set; }
+
+            //主驾
+            public string Driver { get; set; }
+
+            //主驾身份证
+            public string driverId { get; set; }
+
+            //主驾手机号
+            public string drivertel { get; set; }
+
+            //副驾
+            public string Copilot { get; set; }
+
+            //副驾身份证
+            public string supercargoId { get; set; }
+            //副驾手机号
+            public string Copilottel { get; set; }
+            //挂号
+            public string Y_TrailerNo { get; set; }
+
+            //罐号
+            public string Y_TankNo { get; set; }
+
+            //发货单号
+            public string ShipmentTrackingNo { get; set; }
+
+            //发货基地
+            public string DeliveryDase { get; set; }
+            //提货地点
+            public string DeliveryPlace { get; set; }
+
+            //客户名称
+            public string Customer { get; set; }
+
+            //送达省市区
+            public string District { get; set; }
+
+           
+
+            //送达地址
+            public string DeliverySite { get; set; }
+            //报关地点
+            public string CustomsDeclarationSite { get; set; }
+
+            //送达方联系人
+            public string LmsOtherContacts { get; set; }
+            //送达方联系电话
+            public string LmsOtherTel { get; set; }
+            //产品
+            public string ProductName { get; set; }
+            //产品类型
+            public string LmsProductType { get; set; }
+            //计划装车数量
+            public string LmsPlannedLoadingQuantity { get; set; }
+            //标准重车里程
+            public string DayStandardHeavyVehicleMileage { get; set; }
+            //要求到厂时间
+            public string LmsAskingArrivalTime { get; set; }
+            //客户要求送达时间
+            public string LmsCustomerRequestTime { get; set; }
+            //最晚到厂时间 
+            public string ProposalTime { get; set; }
+            //发货备注
+            public string Remark { get; set; }
+
+            //客户注释
+            public string LmsCustomerAnnotation { get; set; }
+
+            //调度备注
+            public string DispatcherRemark { get; set; }
+         
+            //调度
+            public string AddUserStr { get; set; }
+            //司机接单状态  0未接 ，1已接，2拒接
+            public string dos { get; set; }
+
+            //详情表拒单状态
+            public string detailStatus { get; set; }
+            /// <summary>
+            ///  司机到达客户大门确认  0 否 1 是
+            /// </summary>
+            public string DriverArriveConfirm { get; set; }
+
+            public string ArrivalName { get; set; }
+
+            public string ArrivalSite { get; set; }
+
+            public string ChangPin { get; set; }
+
+            public string BrandNO { get; set; }
+
+            public string ShouldKnow { get; set; }
+
+            public string ShouldKnowChanPin { get; set; }
+            /// <summary>
+            /// 客户必带品
+            /// </summary>
+            public string EBCC_NEEDKNOW1 { get; set; }
+            /// <summary>
+            /// 操作流程要求
+            /// </summary>
+            public string EBCC_NEEDKNOW2 { get; set; }
+            /// <summary>
+            /// 厂家经度
+            /// </summary>
+            public string Longitude { get; set; }
+            /// <summary>
+            /// 厂家纬度
+            /// </summary>
+            public string Dimension { get; set; }
+            /// <summary>
+            /// 厂家大门照片
+            /// </summary>
+            public string picture { get; set; }
+            /// <summary>
+            /// 距离到厂距离
+            /// </summary>
+            public int RangeMetre { get; set; }
+            /// <summary>
+            /// 厂商经纬度
+            /// </summary>
+            public itemLocation itemLocation { get; set; }
+            /// <summary>
+            /// 主副驾 1 主驾 2 副驾
+            /// </summary>
+            public int isMainDriver { get; set; }
+            /// <summary>
+            /// pdf地址
+            /// </summary>
+            public string field { get; set; }
+            /// <summary>
+            /// 是否有pdf文件 0有1没有
+            /// </summary>
+            public int bigcum { get; set; }
+
+        }
+        /// <summary>
+        /// 厂家经纬度
+        /// </summary>
+        public class itemLocation
+        {
+            /// <summary>
+            /// 厂商经度
+            /// </summary>
+            public string log { get; set; }
+            /// <summary>
+            /// 厂商纬度
+            /// </summary>
+            public string lat { get; set; }
+        }
+
+        /**
+         * driver_order 实体类 
+         */
+        public class DataItemDriverOrderDetail {
+            public string id { get; set; }
+
+            public string EnteringId { get; set; }
+
+            public string RefuseReason { get; set; }
+
+            public string Status { get; set; }
+
+            public string Addtime { get; set; }
+        }
+
+        public class GetDriverOrderResponse
+        {
+            /// <summary>
+            /// 
+            /// </summary>
+            public int totalElements { get; set; }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public List<DataItemDriverOrder> data { get; set; }
+        }
+        /// <summary>
+        /// 请求经纬度转换
+        /// </summary>
+        public class GetLocationRequest
+        {
+            public double longitude { get; set; }
+            public double latitude { get; set; }
+            public int lx { get; set; }
+        }
+        /// <summary>
+        /// 返回百度经纬度
+        /// </summary>
+        public class DataItemLocation
+        {
+            public string strX { get; set; }
+            public string strY { get; set; }
+            public int code { get; set; }
+        }
+        public class CoorConvert
+        {
+            public string error { get; set; }
+            public string x { get; set; }
+            public string y { get; set; }
+        }
+    }
+}

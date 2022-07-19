@@ -1,0 +1,866 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace YiTeng.Models.SystemModel
+{
+    public class TankInspectionRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string responseQX { get; set; }
+        /// <summary>
+        /// undefined 非申请请求数据
+        /// </summary>
+        public string shenqing { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string wechat { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 罐号
+        /// </summary>
+        public string tankNO { get; set; }
+        /// <summary>
+        /// 车牌号
+        /// </summary>
+        public string plateNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string sortBy { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int size { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int page { get; set; }
+    }
+    public class GetTankInspectionResponse
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <summary>
+        /// 
+        /// </summary>
+        public int totalElements { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemTankInspection> data { get; set; }
+    }
+    public class DataItemTankInspection
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 启用状态
+        /// </summary>
+        public string rec_status { get; set; }
+        /// <summary>
+        /// 使用状态
+        /// </summary>
+        public string etta_use_status { get; set; }
+        /// <summary>
+        /// 位置
+        /// </summary>
+        public string location { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string returnDase { get; set; }
+        /// <summary>
+        /// 运输车号
+        /// </summary>
+        public string plateNumber { get; set; }
+        /// <summary>
+        /// 移罐提罐车号
+        /// </summary>
+        public string plateNumber2 { get; set; }
+        /// <summary>
+        /// 罐号
+        /// </summary>
+        public string tankNO { get; set; }
+        /// <summary>
+        /// 承租方
+        /// </summary>
+        public string rentOuter { get; set; }
+        /// <summary>
+        /// 承租方ID
+        /// </summary>
+        public string rentOuterID { get; set; }
+        /// <summary>
+        /// 租出方
+        /// </summary>
+        public string rentInner { get; set; }
+        /// <summary>
+        /// 调出地
+        /// </summary>
+        public string place { get; set; }
+        /// <summary>
+        /// 调入地
+        /// </summary>
+        public string inPlace { get; set; }
+        /// <summary>
+        /// 服务商ID
+        /// </summary>
+        public string customerID { get; set; }
+        /// <summary>
+        /// 服务商名称
+        /// </summary>
+        public string customer { get; set; }
+        /// <summary>
+        /// 承租方
+        /// </summary>
+        public string tenantry { get; set; }
+        /// <summary>
+        /// 承租方ID
+        /// </summary>
+        public string tenantryID { get; set; }
+        /// <summary>
+        /// 交货单照片、样品
+        /// </summary>
+        public string YardPhoto { get; set; }
+        /// <summary>
+        /// 罐照片
+        /// </summary>
+        public string TankPhoto { get; set; }
+        /// <summary>
+        /// 库位ID
+        /// </summary>
+        public int Storage { get; set; }
+        /// <summary>
+        /// 库位名称
+        /// </summary>
+        public string StorageName { get; set; }
+        /// <summary>
+        /// 库位数
+        /// </summary>
+        public int StorageCount { get; set; }
+        /// <summary>
+        /// 当前位置(堆场)是否存在库位（>0存在）
+        /// </summary>
+        public int StorageCount1 { get; set; }
+        /// <summary>
+        /// 上次流转类型
+        /// </summary>
+        public string lasttankIOType { get; set; }
+    }
+    public class TankRequest
+    {
+        public string criteria { get; set; }
+    }
+    public class TankList
+    {
+        /// <summary>
+        /// </summary>
+        public List<Tanks> data { get; set; }
+    }
+    public class Tanks
+    {
+        /// <summary>
+        ///     名称
+        /// </summary>
+        public string name { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string text { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int value { get; set; }
+    }
+    public class ServerList
+    {
+        /// <summary>
+        /// </summary>
+        public List<Serverer> data { get; set; }
+    }
+    public class Serverer
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        ///     名称
+        /// </summary>
+        public string name { get; set; }
+    }
+    public class Clienter
+    {
+        /// <summary>
+        /// 发送者IDs
+        /// </summary>
+        public string keyValue { get; set; }
+    }
+    public class uid
+    {
+        /// <summary>
+        /// 用户ID
+        /// </summary>
+        public int id { get; set; }
+        /// <summary>
+        /// 用户微信号
+        /// </summary>
+        public string Wechat { get; set; }
+    }
+    public class ContainerYardList
+    {
+        /// <summary>
+        /// </summary>
+        public List<ContainerYard> data { get; set; }
+    }
+    public class ContainerYard
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string name { get; set; }
+        /// <summary>
+        ///     名称
+        /// </summary>
+        public string underBase { get; set; }
+    }
+    public class StorageList
+    {
+        /// <summary>
+        /// </summary>
+        public List<Storage> data { get; set; }
+        /// <summary>
+        /// 是否含有库位 是/否
+        /// </summary>
+        public string isYardStorage { get; set; }
+    }
+    public class Storage
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int value { get; set; }
+        /// <summary>
+        ///     名称
+        /// </summary>
+        public string text { get; set; }
+    }
+    public class ContainerYardList1
+    {
+        /// <summary>
+        /// </summary>
+        public List<ContainerYard1> data { get; set; }
+    }
+    public class ContainerYard1
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string value { get; set; }
+        /// <summary>
+        ///     名称
+        /// </summary>
+        public string text { get; set; }
+    }
+    public class TankIOType
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string value { get; set; }
+        /// <summary>
+        ///     定温效区
+        /// </summary>
+        public string text { get; set; }
+
+        /// <summary>
+        /// </summary>
+        public List<TankIOTypelx> children { get; set; }
+    }
+    public class TankIOTypelx
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int value { get; set; }
+        /// <summary>
+        ///     定温效区
+        /// </summary>
+        public string text { get; set; }
+    }
+    public class TankIOTypeList
+    {
+        /// <summary>
+        /// </summary>
+        public List<TankIOType> data { get; set; }
+    }
+    public class responsePlateInfo
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string plateNumber { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+
+        public string returnDase { get; set; }
+
+    }
+    public class responseTankInfo
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int isResult { get; set; }
+
+    }
+    public class tankIOTypeDetailRequest
+    {
+        /// <summary>
+        /// 流转大类
+        /// </summary>
+        public string tankType { get; set; }
+    }
+    public class tankIOTypeDetailList
+    {
+        /// <summary>
+        /// </summary>
+        public List<tankIOTypeDetail> data { get; set; }
+    }
+    public class tankIOTypeDetail
+    {
+        /// <summary>
+        /// </summary>
+        public int value { get; set; }
+
+        /// <summary>
+        ///     名称
+        /// </summary>
+        public string text { get; set; }
+    }
+
+    public class publicvalue
+    {
+        public int id { get; set; }
+    }
+    public class responseRentOuter
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string name { get; set; }
+    }
+    public class ResponseStorageCount
+    {
+        /// <summary>
+        /// 库位数
+        /// </summary>
+        public int storageCount { get; set; }
+    }
+    public class StorageRequest
+    {
+        /// <summary>
+        /// 库位ID
+        /// </summary>
+        public string storage { get; set; }
+    }
+    public class AddTankIORequest
+    {
+        public string oprateTime { get; set; }
+        public string tankNO { get; set; }
+        public string rentOuter { get; set; }
+        public string remark { get; set; }
+        public string IOType { get; set; }
+        public string tankIOType1 { get; set; }
+        /// <summary>
+        /// 是否开启库位
+        /// </summary>
+        public int isShowStorage { get; set; }
+        /// <summary>
+        /// 运输车号
+        /// </summary>
+        public string plateNumber { get; set; }
+        /// <summary>
+        /// 移罐提罐车号
+        /// </summary>
+        public string plateNumber2 { get; set; }
+        public string cleanClass { get; set; }
+        public string expectCompleteTime { get; set; }
+        public string addUser { get; set; }
+        public string addTime { get; set; }
+
+        public string previousStatus { get; set; }
+        public string rentInner { get; set; }
+        /// <summary>
+        /// 调入地
+        /// </summary>
+        public string inPlace { get; set; }
+        /// <summary>
+        /// 调出地
+        /// </summary>
+        public string place { get; set; }
+        /// <summary>
+        /// 服务商的name
+        /// </summary>
+        public string servicerer { get; set; }
+        /// <summary>
+        /// 服务商ID
+        /// </summary>
+        public string servicer { get; set; }
+        /// <summary>
+        /// 承租方ID
+        /// </summary>
+        public string rentOuterID { get; set; }
+        /// <summary>
+        /// 租出方
+        /// </summary>
+        public string tenantry { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string tenantryID { get; set; }
+        /// <summary>
+        /// 堆场名称
+        /// </summary>
+        public string containerName { get; set; }
+        /// <summary>
+        /// 作废说明
+        /// </summary>
+        public string InvalidRemark { get; set; }
+        /// <summary>
+        /// 返回基地
+        /// </summary>
+        public string underBase { get; set; }
+        /// <summary>
+        /// 申请类型，1申请流转2查看审批单else正常流转
+        /// </summary>
+        public int applyType { get; set; }
+        /// <summary>
+        /// 申请执行情况2执行3作废
+        /// </summary>
+        public int applyStatus { get; set; }
+        /// <summary>
+        /// 申请ID
+        /// </summary>
+        public int id { get; set; }
+        /// <summary>
+        /// 执行人
+        /// </summary>
+        public string executionUser { get; set; }
+        /// <summary>
+        /// 库位
+        /// </summary>
+        public string storage1 { get; set; }
+        /// <summary>
+        /// 原库位
+        /// </summary>
+        public string storage31 { get; set; }
+        /// <summary>
+        /// 移入新库位
+        /// </summary>
+        public string storage30 { get; set; }
+        /// <summary>
+        /// 交货单照片、样品
+        /// </summary>
+        public string image { get; set; }
+        /// <summary>
+        /// 罐照片
+        /// </summary>
+        public string image1 { get; set; }
+        /// <summary>
+        /// 判断app端还是企业微信端 1app端
+        /// </summary>
+        public int platFm { get; set; }
+        /// <summary>
+        /// 转移-起运时间
+        /// </summary>
+        public string startShipmentTime { get; set; }
+        /// <summary>
+        /// 转移-流转明细 起运
+        /// </summary>
+        public string shiftDetailType { get; set; }
+        /// <summary>
+        /// 转移-流转明细 到达
+        /// </summary>
+        public string shiftArriveDetailType { get; set; }
+        /// <summary>
+        /// 转移-起运堆场
+        /// </summary>
+        public string shiftStartContainerYard { get; set; }
+        /// <summary>
+        /// 转移-到达时间
+        /// </summary>
+        public string arriveShipmentTime { get; set; }
+        /// <summary>
+        /// 转移-目的堆场
+        /// </summary>
+        public string shiftArriveContainerYard { get; set; }
+        /// <summary>
+        /// 落罐后是否继续提罐 "1" 继续
+        /// </summary>
+        public string isContinueCanLifting { get; set; }
+        /// <summary>
+        /// 落罐后提罐操作时间
+        /// </summary>
+        public string canLiftingOprateTime { get; set; }
+        /// <summary>
+        /// 落罐后提罐-备注
+        /// </summary>
+        public string canLiftingRemark { get; set; }
+        /// <summary>
+        /// 落罐后提罐-流转明细
+        /// </summary>
+        public string canLiftingTankIOType { get; set; }
+        /// <summary>
+        /// 落罐后提罐-运输车号
+        /// </summary>
+        public string canLiftingPlateNumber { get; set; }
+        /// <summary>
+        /// 落罐后提罐-预计完成时间
+        /// </summary>
+        public string canLiftingExpectCompleteTime { get; set; }
+        /// <summary>
+        /// 落罐后提罐-上一次状态
+        /// </summary>
+        public string canLiftingPreviousStatus { get; set; }
+        /// <summary>
+        /// 落罐后提罐-调入地
+        /// </summary>
+        public string canLiftingInPlace { get; set; }
+        /// <summary>
+        /// 落罐后提罐-服务商
+        /// </summary>
+        public string canLiftingServicer { get;set; }
+        /// <summary>
+        /// 落罐后提罐-租出方
+        /// </summary>
+        public string canLiftingRentOuter { get; set; }
+        /// <summary>
+        /// 落罐后提罐-堆场名称
+        /// </summary>
+        public string canLiftingContainerName { get; set; }
+    }
+    public class UniPushRequest
+    {
+        /// <summary>
+        /// 标题
+        /// </summary>
+        public string title { get; set; }
+        /// <summary>
+        /// 内容
+        /// </summary>
+        public string content { get; set; }
+        /// <summary>
+        /// 跳转url
+        /// </summary>
+        public string postUrl { get; set; }
+        /// <summary>
+        /// 推送用户（个人、群体、所有人）
+        /// </summary>
+        public string cids { get; set; }
+    }
+    public class GetStorageRequest
+    {
+        /// <summary>
+        /// 堆场ID
+        /// </summary>
+        public int pid { get; set; }
+        /// <summary>
+        /// 堆场
+        /// </summary>
+        public string containnerYard { get; set; }
+
+    }
+    public class YardStorage
+    {
+        /// <summary>
+        /// 堆场是否含有库位 是/否
+        /// </summary>
+        public string isYardStorage { get; set; }
+    }
+    public class YardStorageCount
+    {
+        /// <summary>
+        /// 所在堆场启用的库位数
+        /// </summary>
+        public int yardStorageCount { get; set; }
+    }
+    public class QXCount
+    {
+        /// <summary>
+        ///当前人员是否在权限表里
+        /// </summary>
+        public int qXCount { get; set; }
+    }
+    public class GetTankIOApplyRequest
+    {
+        public string id { get; set; }
+        /// <summary>
+        /// 堆场
+        /// </summary>
+        public string containerYard { get; set; }
+        /// <summary>
+        /// 权限
+        /// </summary>
+        public string responseQX { get; set; }//权限
+        /// <summary>
+        /// //权限 0 管理 1 调度 2 堆高驾驶员
+        /// </summary>
+        public string responseQX1 { get; set; }//权限 0 管理 1 调度 2 堆高驾驶员
+        /// <summary>
+        /// 所在堆场
+        /// </summary>
+        public string mentionPlace { get; set; }//所在堆场
+        /// <summary>
+        /// 罐号
+        /// </summary>
+        public string tankNum { get; set; }
+        /// <summary>
+        /// 检索条件-车号
+        /// </summary>
+        public string plateNumber { get; set; }
+        public string wechat { get; set; }
+        /// <summary>
+        /// 检索条件（"未完成""已完成"）
+        /// </summary>
+        public string selectedLabel { get; set; }
+        /// <summary>
+        /// 已完成检索条件（起始时间）
+        /// </summary>
+        public string StartDate { get; set; }
+        /// <summary>
+        /// 已完成检索条件（截止时间）
+        /// </summary>
+        public string EndDate { get; set; }
+        public int page { get; set; }
+        public int size { get; set; }
+    }
+    public class GetTankIOApplyResponse
+    {
+        /// <summary>
+        /// 未完成数量
+        /// </summary>
+        public int totalElements { get; set; }
+        /// <summary>
+        /// 已完成数量
+        /// </summary>
+        public int untotalElements { get; set; }
+        /// <summary>
+        /// 是否是检查人员0是审批人1被审批人
+        /// </summary>
+        public int isApplyer { get; set; }
+        /// <summary>
+        /// 已完成列表
+        /// </summary>
+        public List<DataItemTankIO> data { get; set; }
+
+        //未完成列表
+        public List<DataItemTankIO> undata { get; set; }
+    }
+    public class DataItemTankIO
+    {
+        public int id { get; set; }
+        /// <summary>
+        /// 申请单号
+        /// </summary>
+        public string TSNO { get; set; }
+        /// <summary>
+        /// 流转类型
+        /// </summary>
+        public string IOType { get; set; }
+        /// <summary>
+        /// 流转类型明细
+        /// </summary>
+        public string tankIOType { get; set; }
+        /// <summary>
+        /// 上次流转类型明细
+        /// </summary>
+        public string lasttankIOType { get; set; }
+        /// <summary>
+        /// 罐号
+        /// </summary>
+        public string tankNO { get; set; }
+        /// <summary>
+        /// 启用状态
+        /// </summary>
+        public string tankStatus { get; set; }
+        /// <summary>
+        /// 使用状态
+        /// </summary>
+        public string useStatus { get; set; }
+        /// <summary>
+        /// 位置
+        /// </summary>
+        public string tankLocation { get; set; }
+        /// <summary>
+        /// 归属地
+        /// </summary>
+        public string qCellCore { get; set; }
+        /// <summary>
+        /// 流转时间
+        /// </summary>
+        public string oprateTime { get; set; }
+        /// <summary>
+        /// 承租方
+        /// </summary>
+        
+        public string rentOuter { get; set; }
+        /// <summary>
+        /// 备注
+        /// </summary>
+        public string remark { get; set; }
+        /// <summary>
+        /// 堆场
+        /// </summary>
+        public string containerYard { get; set; }
+        /// <summary>
+        /// 作废原因
+        /// </summary>
+        public string InvalidRemark { get; set; }
+        /// <summary>
+        /// 流转类别
+        /// </summary>
+        public string tankIOType1 { get; set; }
+        /// <summary>
+        /// 运输车号
+        /// </summary>
+        public string plateNumber { get; set; }
+        /// <summary>
+        /// 移罐提罐车号
+        /// </summary>
+        public string plateNumber2 { get; set; }
+        /// <summary>
+        /// 送修洗服务商名称
+        /// </summary>
+        public string servicerName { get; set; }
+        public string cleanClass { get; set; }
+        public string expectCompleteTime { get; set; }
+        /// <summary>
+        /// 申请人
+        /// </summary>
+        public string addUser { get; set; }
+        /// <summary>
+        /// 执行人
+        /// </summary>
+        public string ExecutionUser { get; set; }
+        /// <summary>
+        /// 申请时间
+        /// </summary>
+        public string addTime { get; set; }
+        /// <summary>
+        /// 申请执行时间
+        /// </summary>
+        public string IOTime { get; set; }
+        /// <summary>
+        /// 执行时间
+        /// </summary>
+        public string executionTime { get; set; }
+
+        public string previousStatus { get; set; }
+        public string rentInner { get; set; }
+        public string avartar { get; set; }
+        /// <summary>
+        /// 审批结果0待审批1通过2作废
+        /// </summary>
+        public string result { get; set; }
+        /// <summary>
+        /// 调入地
+        /// </summary>
+        public string inPlace { get; set; }
+        /// <summary>
+        /// 调出地
+        /// </summary>
+        public string place { get; set; }
+        /// <summary>
+        /// 服务商的name
+        /// </summary>
+        public string servicerer { get; set; }
+        /// <summary>
+        /// 服务商ID
+        /// </summary>
+        public string servicer { get; set; }
+        /// <summary>
+        /// 承租方ID
+        /// </summary>
+        public string rentOuterID { get; set; }
+        /// <summary>
+        /// 租出方
+        /// </summary>
+        public string tenantry { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string tenantryID { get; set; }
+        /// <summary>
+        /// 堆场名称
+        /// </summary>
+        public string containerName { get; set; }
+        /// <summary>
+        /// 返回基地
+        /// </summary>
+        public string underBase { get; set; }
+        /// <summary>
+        /// 是否有库位
+        /// </summary>
+        public string Storage { get; set; }
+        /// <summary>
+        /// 库位ID
+        /// </summary>
+        public int StorageID { get; set; }
+        /// <summary>
+        /// 库位名称
+        /// </summary>
+        public string StorageName { get; set; }
+        /// <summary>
+        /// 库位所在堆场ID
+        /// </summary>
+        public string StoragePid { get; set; }
+        /// <summary>
+        /// 交货单照片、样品
+        /// </summary>
+        public string YardPhoto { get; set; }
+        /// <summary>
+        /// 罐照片
+        /// </summary>
+        public string TankPhoto { get; set; }
+        /// <summary>
+        /// 库位数
+        /// </summary>
+        public int StorageCount { get; set; }
+    }
+    /// <summary>
+    /// 
+    /// </summary>
+    public class GetTankIOApplyResponseQX
+    {
+        public string id { get; set; }
+        /// <summary>
+        /// 操作员微信号
+        /// </summary>
+        public string userwechat { get; set; }
+        /// <summary>
+        /// 操作员类型0管理 1 调度 2 堆高机驾驶员
+        /// </summary>
+        public int usertype { get; set; }
+        /// <summary>
+        /// 堆场
+        /// </summary>
+        public string mentionPlace { get; set; }
+    }
+
+}

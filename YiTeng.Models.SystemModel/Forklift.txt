@@ -1,0 +1,860 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace YiTeng.Models.SystemModel
+{
+    public class Forklift
+    {
+        public class GetForkliftRequest
+        {
+            /// <summary>
+            /// 页数
+            /// </summary>
+            public int page;
+            /// <summary>
+            /// 显示个数
+            /// </summary>
+            public int size;
+            /// <summary>
+            /// 登录者微信号
+            /// </summary>
+            public string wechat { get; set; }
+            /// <summary>
+            /// 登录者ID
+            /// </summary>
+            public string uid { get; set; }
+            /// <summary>
+            /// 用户权限
+            /// </summary>
+            public string responseQX { get; set; }
+            /// <summary>
+            /// 某个委托ID
+            /// </summary>
+            public string id { get; set; }
+            /// <summary>
+            /// tab标识 0未派车4未审批1已派车2已完成3返还9作废
+            /// </summary>
+            public string tab { get; set; }
+        }
+        public class GetForkliftResponse
+        {
+            /// <summary>
+            /// 请求总数
+            /// </summary>
+            public int totalElements { get; set; }
+            /// <summary>
+            /// 委托数据
+            /// </summary>
+            public List<DataItemForklift> data { get; set; }
+            /// <summary>
+            /// 是否有审批权限 1有else没有
+            /// </summary>
+            public int isApprove { get; set; }
+            /// <summary>
+            /// 返回结果状态
+            /// </summary>
+            public int resultStatus { get; set; }
+        }
+        /// <summary>
+        /// 获取当前订单状态
+        /// </summary>
+        public class GetOrderStatus
+        {
+            public int OrderStatus { get; set; }
+        }
+        public class DataItemForklift
+        {
+            /// <summary>
+            /// 委托ID
+            /// </summary>
+            public string id { get; set; }
+            public string orderNO { get; set; }
+            /// <summary>
+            /// 申请人姓名
+            /// </summary>
+            public string applyUserName { get; set; }
+            /// <summary>
+            /// 部门
+            /// </summary>
+            public string unitName { get; set; }
+            /// <summary>
+            /// 申请人电话
+            /// </summary>
+            public string mobile { get; set; }
+            /// <summary>
+            /// 申请时间
+            /// </summary>
+            public string applyTime { get; set; }
+            /// <summary>
+            /// 申请方电话
+            /// </summary>
+            public string applyPhone { get; set; }
+            /// <summary>
+            /// 申请单位
+            /// </summary>
+            public string applyDepart { get; set; }
+            /// <summary>
+            /// 叉车作业预估时间(小时)
+            /// </summary>
+            public string applyEstimate { get; set; }
+            /// <summary>
+            /// 作业区域范围
+            /// </summary>
+            public string applyRange { get; set; }
+            /// <summary>
+            /// 物件名称
+            /// </summary>
+            public string applyMaterials { get; set; }
+            /// <summary>
+            /// 开始作业时间
+            /// </summary>
+            public string applyStartTime { get; set; }
+            /// <summary>
+            /// 作业内容(此字段未用到)
+            /// </summary>
+            public string applyContent { get; set; }
+            /// <summary>
+            /// 工作区域列表
+            /// </summary>
+            public List<CheckBoxItem> workPlaceList { get; set; }
+            public string[] workPlace { get; set; }
+            /// <summary>
+            /// 所叉货物时间
+            /// </summary>
+            public string applyWhereabouts { get; set; }
+            /// <summary>
+            /// 辅助工具
+            /// </summary>
+            public string auxiliaryTool { get; set; }
+            /// <summary>
+            /// 生产区0是1否
+            /// </summary>
+            public int wSProductionAreas { get; set; }
+            /// <summary>
+            /// 非生产区0是1否
+            /// </summary>
+            public int wSNonProductionAreas { get; set; }
+            /// <summary>
+            /// 易燃易爆物0是1否
+            /// </summary>
+            public int wSCombustibles { get; set; }
+            /// <summary>
+            /// 有毒物0是1否
+            /// </summary>
+            public int wSToxic { get; set; }
+            /// <summary>
+            /// 惰性0是1否
+            /// </summary>
+            public int wSInertia { get; set; }
+            /// <summary>
+            /// 放射物0是1否
+            /// </summary>
+            public int wSRadiation { get; set; }
+            /// <summary>
+            /// 腐蚀物0是1否
+            /// </summary>
+            public int wSCorrosives { get; set; }
+            /// <summary>
+            /// 粉尘0是1否
+            /// </summary>
+            public int wSDust { get; set; }
+            /// <summary>
+            /// 泄露0是1否
+            /// </summary>
+            public int wSLeakage { get; set; }
+            /// <summary>
+            /// 噪音0是1否
+            /// </summary>
+            public int wSNoise { get; set; }
+            /// <summary>
+            /// 坠物0是1否
+            /// </summary>
+            public int wSFalling { get; set; }
+            /// <summary>
+            /// 交叉作业0是1否
+            /// </summary>
+            public int wSCrossOperation { get; set; }
+            /// <summary>
+            /// 照明不好0是1否
+            /// </summary>
+            public int wSPoorLighting { get; set; }
+            /// <summary>
+            /// 不利天气0是1否
+            /// </summary>
+            public int wSAdverseWeather { get; set; }
+            /// <summary>
+            /// 其他0是1否
+            /// </summary>
+            public int WSOther { get; set; }
+            /// <summary>
+            /// 其他内容
+            /// </summary>
+            public string wSOtherContent { get; set; }
+
+            public List<CheckBoxItem> pickUpList { get; set; }
+            public string[] forkLiftPickUp { get; set; }
+            /// <summary>
+            /// 易燃易爆炸物0是1否
+            /// </summary>
+            public int uWSCombustibles { get; set; }
+            /// <summary>
+            /// 有毒物0是1否
+            /// </summary>
+            public int uWSToxic { get; set; }
+            /// <summary>
+            /// 惰性0是1否
+            /// </summary>
+            public int uWSInertia { get; set; }
+            /// <summary>
+            /// 放射物0是1否
+            /// </summary>
+            public int uWSRadiation { get; set; }
+            /// <summary>
+            /// 腐蚀物0是1否
+            /// </summary>
+            public int uWSCorrosives { get; set; }
+            /// <summary>
+            /// 粉尘0是1否
+            /// </summary>
+            public int uWSDust { get; set; }
+            /// <summary>
+            /// 泄露0是1否
+            /// </summary>
+            public int uWSLeakage { get; set; }
+            /// <summary>
+            /// 产生火花0是1否
+            /// </summary>
+            public int uWSSparks { get; set; }
+            /// <summary>
+            /// 噪音0是1否
+            /// </summary>
+            public int uWSNoise { get; set; }
+            /// <summary>
+            /// 坠物0是1否
+            /// </summary>
+            public int uWSFalling { get; set; }
+            /// <summary>
+            /// 交叉作业0是1否
+            /// </summary>
+            public int uWSCrossOperation { get; set; }
+            /// <summary>
+            /// 照明不好0是1否
+            /// </summary>
+            public int uWSPoorLighting { get; set; }
+            /// <summary>
+            /// 不利天气0是1否
+            /// </summary>
+            public int uWSAdverseWeather { get; set; }
+            /// <summary>
+            /// 易碎品0是1否
+            /// </summary>
+            public int uWSFragile { get; set; }
+            /// <summary>
+            /// 叉板短0是1否
+            /// </summary>
+            public int uWSShortBoard { get; set; }
+            /// <summary>
+            /// 其他0是1否
+            /// </summary>
+            public int uWSOther { get; set; }
+            /// <summary>
+            /// 其他内容
+            /// </summary>
+            public string uWSOtherContent { get; set; }
+
+            public List<CheckBoxItem> precautionList { get; set; }
+
+            public string[] precaution { get; set; }
+            /// <summary>
+            /// 防毒口罩0是1否
+            /// </summary>
+            public int antiPoisonRespirator { get; set; }
+            /// <summary>
+            /// 耳塞/耳罩0是1否
+            /// </summary>
+            public int earplugs { get; set; }
+            /// <summary>
+            /// 防火罩0是1否
+            /// </summary>
+            public int fireproofCover { get; set; }
+            /// <summary>
+            /// 密封存放0是1否
+            /// </summary>
+            public int sealedStorage { get; set; }
+            /// <summary>
+            /// 工艺人员监护0是1否
+            /// </summary>
+            public int monitoring { get; set; }
+            /// <summary>
+            /// 数量控制0是1否
+            /// </summary>
+            public int quantityControl { get; set; }
+            /// <summary>
+            /// 合理捆绑0是1否
+            /// </summary>
+            public int reasonableBinding { get; set; }
+            /// <summary>
+            /// 拉警戒线0是1否
+            /// </summary>
+            public int cordon { get; set; }
+            /// <summary>
+            /// 挂工作告知牌0是1否
+            /// </summary>
+            public int noticeBoard { get; set; }
+            /// <summary>
+            /// 放叉板0是1否
+            /// </summary>
+            public int forkPlate { get; set; }
+            /// <summary>
+            /// 安全带0是1否
+            /// </summary>
+            public int safetyBelt { get; set; }
+            /// <summary>
+            /// 隔离0是1否
+            /// </summary>
+            public int quarantine { get; set; }
+            /// <summary>
+            /// 是否其他专用防护用品(有各工序提示)        0是1否
+            /// </summary>
+            public int IFEquipment { get; set; }
+            /// <summary>
+            /// 其他专用防护用品(有各工序提示) 内容
+            /// </summary>
+            public string equipment { get; set; }
+
+            public string urgentType { get; set; }
+            /// <summary>
+            /// 完成时间
+            /// </summary>
+            public string completeTime { get; set; }
+            /// <summary>
+            /// 是否续约订单 0 新申请，1 续约申请
+            /// </summary>
+            public string orderType { get; set; }
+            /// <summary>
+            /// 是否续约订单str 新申请 续约申请
+            /// </summary>
+            public string orderTypeStr { get; set; }
+            /// <summary>
+            /// 来源单号
+            /// </summary>
+            public string originOrder { get; set; }
+            /// <summary>
+            /// 司机
+            /// </summary>
+            public string driver { get; set; }
+            /// <summary>
+            /// 司机ID
+            /// </summary>
+            public string driverID { get; set; }
+            /// <summary>
+            /// 车号
+            /// </summary>
+            public string forkliftNO { get; set; }
+            /// <summary>
+            /// 调度备注
+            /// </summary>
+            public string dispatcherRemark { get; set; }
+            /// <summary>
+            /// 完成人
+            /// </summary>
+            public string finishUser { get; set; }
+            /// <summary>
+            /// 完成时间
+            /// </summary>
+            public string finishTime { get; set; }
+            /// <summary>
+            /// 官方审核人
+            /// </summary>
+            public string reviewedBy { get; set; }
+            /// <summary>
+            /// 官方审核时间
+            /// </summary>
+            public string reviewedTime { get; set; }
+            /// <summary>
+            /// 官方审核意见
+            /// </summary>
+            public string reviewedOpinion { get; set; }
+            /// <summary>
+            /// 客户审核人
+            /// </summary>
+            public string reviewedByClient { get; set; }
+            /// <summary>
+            /// 客户审核时间
+            /// </summary>
+            public string reviewedTimeClient { get; set; }
+            /// <summary>
+            /// 客户审核意见
+            /// </summary>
+            public string reviewedRemarkClient { get; set; }
+            /// <summary>
+            /// 客户备注
+            /// </summary>
+            public string remark { get; set; }
+        }
+        public class CheckBoxItem
+        {
+            public string name { get; set; }
+            public string column { get; set; }
+            public bool Checked { get; set; }
+            public bool disabled { get; set; } = false;
+        }
+        public class ForkCount
+        {
+            public forkCount data { get; set; }
+            /// <summary>
+            /// 返回数据结果 200 成功
+            /// </summary>
+            public int code { get; set; }
+        }
+        public class forkCount
+        {
+            /// <summary>
+            /// 未派车
+            /// </summary>
+            public int tabNO1 { get; set; }
+            /// <summary>
+            /// 处理中
+            /// </summary>
+            public int tabNO2 { get; set; }
+            /// <summary>
+            /// 待审批
+            /// </summary>
+            public int tabNO3 { get; set; }
+            /// <summary>
+            /// 已派车
+            /// </summary>
+            public int tabNO4 { get; set; }
+            /// <summary>
+            /// 已完成
+            /// </summary>
+            public int tabNO5 { get; set; }
+            /// <summary>
+            /// 已驳回
+            /// </summary>
+            public int tabNO6 { get; set; }
+        }
+        public class DataItemForkliftDetails
+            {
+                public string id { get; set; }
+                /// <summary>
+                /// 单号
+                /// </summary>
+                public string orderNO { get; set; }
+                /// <summary>
+                /// 申请人姓名
+                /// </summary>
+                public string applyUser { get; set; }
+                /// <summary>
+                /// 申请时间
+                /// </summary>
+                public string applyTime { get; set; }
+                /// <summary>
+                /// 申请范围
+                /// </summary>
+                public string applyRange { get; set; }
+                /// <summary>
+                /// 作业申请预估时间
+                /// </summary>
+                public string applyEstimate { get; set; }
+                /// <summary>
+                /// 物件名称
+                /// </summary>
+                public string applyMaterials { get; set; }
+                /// <summary>
+                /// 开始作业时间
+                /// </summary>
+                public string applyStartTime { get; set; }
+                /// <summary>
+                /// 作业内容
+                /// </summary>
+                public string applyContent { get; set; }
+                /// <summary>
+                /// 所叉去向
+                /// </summary>
+                public string applyWhereabouts { get; set; }
+                /// <summary>
+                /// 辅助工具
+                /// </summary>
+                public string auxiliaryTool { get; set; }
+
+                /// <summary>
+                /// 工作区域列表
+                /// </summary>
+                public string[] workPlace { get; set; }
+                /// <summary>
+                /// 生产区
+                /// </summary>
+                public int WSProductionAreas { get; set; } = 1;
+
+                /// <summary>
+                /// 非生产区
+                /// </summary>
+                public int WSNonProductionAreas { get; set; } = 1;
+
+                /// <summary>
+                /// 易燃易爆炸物
+                /// </summary>
+                public int WSCombustibles { get; set; } = 1;
+                /// <summary>
+                /// 有毒物
+                /// </summary>
+                public int WSToxic { get; set; } = 1;
+                /// <summary>
+                /// 惰性
+                /// </summary>
+                public int WSInertia { get; set; } = 1;
+                /// <summary>
+                /// 放射物
+                /// </summary>
+                public int WSRadiation { get; set; } = 1;
+                /// <summary>
+                /// 腐蚀物
+                /// </summary>
+                public int WSCorrosives { get; set; } = 1;
+                /// <summary>
+                /// 粉尘
+                /// </summary>
+                public int WSDust { get; set; } = 1;
+                /// <summary>
+                /// 泄露
+                /// </summary>
+                public int WSLeakage { get; set; } = 1;
+
+                /// <summary>
+                /// 噪音
+                /// </summary>
+                public int WSNoise { get; set; } = 1;
+                /// <summary>
+                /// 坠物
+                /// </summary>
+                public int WSFalling { get; set; } = 1;
+                /// <summary>
+                /// 交叉作业
+                /// </summary>
+
+                public int WSCrossOperation { get; set; } = 1;
+
+                /// <summary>
+                /// 照明不好
+                /// </summary>
+
+                public int WSPoorLighting { get; set; } = 1;
+
+                /// <summary>
+                /// 不利天气
+                /// </summary>
+
+                public int WSAdverseWeather { get; set; } = 1;
+
+                /// <summary>
+                /// 其他
+                /// </summary>
+
+                public int WSOther { get; set; } = 1;
+                /// <summary>
+                /// 其他内容
+                /// </summary>
+
+                public string wSOtherContent { get; set; }
+
+
+
+                /// <summary>
+                /// 叉车取件列表
+                /// </summary>
+                public string[] forkLiftPickUp { get; set; }
+
+
+                /// <summary>
+                /// 易燃易爆炸物
+                /// </summary>
+                public int UWSCombustibles { get; set; } = 1;
+
+                /// <summary>
+                /// 有毒物
+                /// </summary>
+                public int UWSToxic { get; set; } = 1;
+
+                /// <summary>
+                /// 惰性
+                /// </summary>
+                public int UWSInertia { get; set; } = 1;
+
+                /// <summary>
+                /// 放射物
+                /// </summary>
+                public int UWSRadiation { get; set; } = 1;
+
+                /// <summary>
+                /// 腐蚀物
+                /// </summary>
+                public int UWSCorrosives { get; set; } = 1;
+
+                /// <summary>
+                /// 粉尘
+                /// </summary>
+                public int UWSDust { get; set; } = 1;
+
+                /// <summary>
+                /// 泄露
+                /// </summary>
+                public int UWSLeakage { get; set; } = 1;
+
+                /// <summary>
+                /// 产生火花
+                /// </summary>
+                public int UWSSparks { get; set; } = 1;
+
+                /// <summary>
+                /// 噪音
+                /// </summary>
+                public int UWSNoise { get; set; } = 1;
+
+                /// <summary>
+                /// 坠物
+                /// </summary>
+                public int UWSFalling { get; set; } = 1;
+
+                /// <summary>
+                /// 交叉作业
+
+                /// </summary>
+                public int UWSCrossOperation { get; set; } = 1;
+
+                /// <summary>
+                /// 照明不好
+                /// </summary>
+                public int UWSPoorLighting { get; set; } = 1;
+
+                /// <summary>
+                /// 不利天气
+                /// </summary>
+                public int UWSAdverseWeather { get; set; } = 1;
+
+                /// <summary>
+                /// 易碎品
+                /// </summary>
+                public int UWSFragile { get; set; } = 1;
+
+                /// <summary>
+                /// 插板短
+                /// </summary>
+                public int UWSShortBoard { get; set; } = 1;
+
+                /// <summary>
+                /// 是否有其他
+                /// </summary>
+                public int UWSOther { get; set; } = 1;
+
+                /// <summary>
+                /// 其他
+                /// </summary>
+                public string uWSOtherContent { get; set; }
+
+
+                /// <summary>
+                /// 叉车取件列表
+                /// </summary>
+                public string[] precaution { get; set; }
+
+                /// <summary>
+                /// 防毒口罩
+                /// </summary>
+                public int AntiPoisonRespirator { get; set; } = 1;
+
+                /// <summary>
+                /// 耳塞/耳罩
+                /// </summary>
+                public int Earplugs { get; set; } = 1;
+
+                /// <summary>
+                /// 防火罩
+                /// </summary>
+                public int FireproofCover { get; set; } = 1;
+
+                /// <summary>
+                /// 密封存放
+                /// </summary>
+                public int SealedStorage { get; set; } = 1;
+
+                /// <summary>
+                /// 工艺人员监护
+                /// </summary>
+                public int Monitoring { get; set; } = 1;
+
+                /// <summary>
+                /// 数量控制
+                /// </summary>
+                public int QuantityControl { get; set; } = 1;
+
+                /// <summary>
+                /// 合理捆绑
+                /// </summary>
+                public int ReasonableBinding { get; set; } = 1;
+
+                /// <summary>
+                /// 拉警戒线
+                /// </summary>
+                public int Cordon { get; set; } = 1;
+
+                /// <summary>
+                /// 挂工作告知牌
+                /// </summary>
+                public int NoticeBoard { get; set; } = 1;
+
+                /// <summary>
+                /// 放叉板
+                /// </summary>
+                public int ForkPlate { get; set; } = 1;
+
+                /// <summary>
+                /// 安全带
+                /// </summary>
+                public int SafetyBelt { get; set; } = 1;
+
+                /// <summary>
+                /// 隔离
+                /// </summary>
+                public int Quarantine { get; set; } = 1;
+
+                /// <summary>
+                /// 其他专用防护用品(有各工序提供)
+                /// </summary>
+                public int IFEquipment { get; set; } = 1;
+
+                /// <summary>
+                /// 其他
+                /// </summary>
+                public string equipment { get; set; }
+
+
+                /// <summary>
+                /// 状态	0未派车 1未审核 2 已驳回 3已派车4已完成5返回9作废
+                /// </summary> 
+                public int OrderStatus { get; set; }
+
+                /// <summary>
+                /// 紧急类型	0普通1着急2抢修 
+                /// </summary> 
+                public int UrgentType { get; set; }
+
+                /// <summary>
+                /// 司机
+                /// </summary> 
+                public int Driver { get; set; }
+
+                /// <summary>
+                /// 车号
+                /// </summary> 
+                public string ForkliftNO { get; set; }
+
+
+                /// <summary>
+                /// 调度
+                /// </summary> 
+                public int Dispatcher { get; set; }
+
+                /// <summary>
+                /// 调度备注
+                /// </summary> 
+                public string DispatcherRemark { get; set; }
+
+                /// <summary>
+                /// 审核人
+                /// </summary> 
+                public int ReviewedBy { get; set; }
+
+                /// <summary>
+                /// 审核时间
+                /// </summary> 
+                public string ReviewedTime { get; set; }
+
+                /// <summary>
+                /// 审核意见
+                /// </summary> 
+                public string ReviewedOpinion { get; set; }
+
+                /// <summary>
+                /// 完成人
+                /// </summary> 
+                public string FinishUser { get; set; }
+
+                /// <summary>
+                /// 完成时间
+                /// </summary> 
+                public string FinishTime { get; set; }
+
+                /// <summary>
+                /// 返回人
+                /// </summary> 
+                public string ReturenUser { get; set; }
+
+                /// <summary>
+                /// 返回时间
+                /// </summary> 
+                public string ReturenTime { get; set; }
+
+                /// <summary>
+                /// 工作满意度 0满意1不满意 
+                /// </summary> 
+                public int AttitudeSatisfaction { get; set; }
+
+                /// <summary>
+                /// 工作质量满意度 0满意1不满意 
+                /// </summary> 
+                public int WorkSatisfaction { get; set; }
+
+                /// <summary>
+                /// 不满意原因
+                /// </summary> 
+                public string SatisfactionReason { get; set; }
+
+                /// <summary>
+                /// 客户备注
+                /// </summary> 
+                public string remark { get; set; }
+
+                /// <summary>
+                /// 新增人
+                /// </summary> 
+                public int adduser { get; set; }
+
+                /// <summary>
+                /// 新增人时间
+                /// </summary> 
+                public string addtime { get; set; }
+
+                /// <summary>
+                /// 修改人
+                /// </summary> 
+                public int modifyuser { get; set; }
+
+                /// <summary>
+                /// 修改人时间
+                /// </summary> 
+                public string modifytime { get; set; }
+
+                //0是新增 1是修改 2是审核 3完成
+                public string type { get; set; }
+            /// <summary>
+            /// 是否续约 0 新申请，1 续约申请
+            /// </summary>
+            public int orderType { get; set; }
+            /// <summary>
+            /// 来源单号
+            /// </summary>
+            public string OriginOrder { get; set; }
+            /// <summary>
+            /// 审批回写状态 1 通过  2驳回
+            /// </summary>
+            public int reviewedClientStatus { get; set; }
+            /// <summary>
+            /// 是否续约 0正常1续约
+            /// </summary>
+            public int isXY { get; set; }
+            }
+        }
+    
+}

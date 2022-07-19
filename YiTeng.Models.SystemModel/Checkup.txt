@@ -1,0 +1,893 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace YiTeng.Models.SystemModel
+{
+    public class GetCheckupRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int page;
+        /// <summary>
+        /// 
+        /// </summary>
+        public int size;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string checkStatus;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string sortBy;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string keyword;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string searchFlag;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string userId;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string wechat;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string returnUrl;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string responseQX;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string startTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string endTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ctype;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string isManager;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string subTabIndex;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string subTabIndexFJ;
+        
+    }
+
+    public class GetCheckupResponse
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int totalElements { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int FJtotalElements { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemCheckup> data { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemCheckup> FJData { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemCheckup> YJData { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemCheckup> GBData { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string[] tabList { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string[] tabListFJ { get; set; }
+    }
+    
+    public class RequestWXConfig
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string url { get; set; }
+        /// <summary>
+        /// 企业微信服务器上语音ID码
+        /// </summary>
+        public string serverId { get; set; }
+    }
+
+    public class ResponseWXConfig
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public ResponseWXConfigItem data;
+        /// <summary>
+        /// 
+        /// </summary>
+        public int code { get; set; }
+    }
+
+    public class ResponseWXConfigItem
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string appId { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public long timestamp { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string nonceStr { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string signature { get; set; }
+        public string jsapi_ticket { get; set; }
+    }
+
+    public class DataItemCheckup
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string chepai { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string newChepai { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string guahao { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string newGuahao { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string guanhao { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string newGuanhao { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string zhujia { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string newZhujia { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string fuzhujia { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string newFuzhujia { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string projectID { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string status { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckStatus { get; set; }
+        /// <summary>
+        /// 同上，但是和数据库实体一致，否则单条查询不到
+        /// </summary>
+        public string CheckUpStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string avatar { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string projectid { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string namalProArray { get; set; }
+        /// <summary>
+        /// 同上，名称与数据库中对应
+        /// </summary>
+        public string normalProArray { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string problemProArray { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string problemProject { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string currentStep { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string currentIndex { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CurrentProArray { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string IsMainInfoCorrect { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string IsProjectCorrect { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string LastCheckupTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CloseReason { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ShipmentTrackingNo { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ProductName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string Dispatcher { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DispatcherWechat { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string EnteringID { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ExpectedInspectionTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string gbqx;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string FJCheckStatus;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string FJCheckStartTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string Origin;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string startTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string endTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string regectTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string closeTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string deferTime;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string problemDescription;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string createUser;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string closeUser;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string checkUser;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string checkupTitle;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string checkNO;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string isManager;
+    }
+
+    public class GetCheckupProDetailRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string inid { get; set; }
+    }
+
+    public class GetCheckupProDetailResponse
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int totalElements { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemProjectDetail> data { get; set; }
+    }
+
+    public class DataItemProjectDetail
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string imagePath { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string problemDescription { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckProject { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckStantard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckMethod { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+    }
+
+    public class UpdateCarInfoRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CarNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string GCarNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string TankNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string Driver { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DeuptyDriver { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string NewCarNO { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string NewGCarNO { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string NewTankNO { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string NewDriver { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string NewDeptyDriver { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string IsMainInfoCorrect { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CurrentProArray { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int CheckUpStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string OldCheckNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ModifyUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string TransportCapacityID { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CurrentIndex { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CurrentStep { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string LastCheckupTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CloseReason { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ShipmentTrackingNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string Dispatcher { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DispatcherWechat { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string EnteringID { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CloseUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ProductName { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckProject { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckWay { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckStantard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ImagePath { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckNotes { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DeferTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string PunishMethod { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public float PunishMoney { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CreateUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ChangeType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string StartTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string EndTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string RejectTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CloseTime { get; set; }
+    }
+    public class UpdateCarInfoRepose
+    {
+        public string exp { get; set; }
+    }
+
+    public class AddProjectRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckUpStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CurrentIndex { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckNO { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ModifyUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ProblemProArray { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CurrentStep { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool IsProjectCorrect { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string IsProjectCorrectCommand { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CurrentProArray { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ModifyTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string EnteringID { get; set; }
+
+        //detail
+        public string InspectVechicleID { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ImagePath { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string IsQualified { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string reformValue { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DeferTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ProblemDescription { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CreateUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckNotes { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckProject { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckStantard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckWay { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string image { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckProId { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string LastCheckupTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckType { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string PunishMethod { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string PunishMoney { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string FJCheckStatus { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string EndTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string checkStartTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DJCheckUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string FJCheckUser { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string FJCheckStartTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string FJCheckEndTime { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string detailid { get; set; }
+
+    }
+
+    public class GetCheckupProRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+    }
+    public class DataItemProject
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckProject { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckStantard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CheckMethod { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+    }
+    public class GetCheckupProResponse
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int totalElements { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<DataItemProject> data { get; set; }
+    }
+    public class responseIds
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ids { get; set; }
+    }
+    public class responseIdentity
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string ETTP_IDENTIFICATION_NO { get; set; }
+    }
+    public class responseBPMInfo
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public int taskID { get; set; }
+        public int parentID { get; set; }
+        public string createTime { get; set; }
+
+        public string unusalSatus { get; set; }
+
+        public int qjdID { get; set; }
+        public string ParentSatus { get; set; }
+        public string qjdSatus { get; set; }
+
+    }
+    public class responseProductClassName
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string productName { get; set; }
+    }
+    public class responseDriverIdentity
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string MainDriverCard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DeputyDriverCard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int isMainDriver { get; set; }
+    }
+    public class responseIsDoubleDriver
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string DeputyDriverCard { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public int isDoubleDriver { get; set; }
+    }
+    public class UpdateProItemRequest
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+    }
+    public class responseProIds
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string id { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public string inId { get; set; }
+    }
+}

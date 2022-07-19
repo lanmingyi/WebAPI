@@ -1,0 +1,155 @@
+using gpsdll;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using YiTeng.Controllers.Base;
+using YiTeng.Framework.Common;
+using YiTeng.Models.SystemModel;
+
+namespace YiTeng.Controllers.SystemController
+{
+    public class Salary : SessionController
+    {
+        /// <summary>
+        ///     查询驾驶员薪资
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("GetDriverSalary")]
+        public IActionResult GetServiceTicket([FromBody] GetDriverSalaryRequest data)
+        {
+            try
+            {
+                //var constr = GlobalVar.ConnString + GlobalVar.DbName;
+                //GPSDb gdb = new GPSDb(constr);
+                var result = new GetDriverSalaryResponse();
+                //if (string.IsNullOrEmpty(data.responseQX))
+                //    data.responseQX = "";
+                if (string.IsNullOrEmpty(data.wechat))
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    //data.wechat = "13573589234";
+                    //var identity = GetIdentity(data.wechat);
+                    //    var isMainDriver = IsMainDriver(data.wechat);
+                    result.data = new List<DataItemDriverSalary>();
+                    //result.noData = new List<DataItemServiceTicket>();
+                    var db = GetDbSqlHelper();
+                    //var sql =
+                    //    "select id,PlateNumber,TralerNO,TankNO,MainDriver,DeputyDriver,CheckUpStatus,CurrentIndex,CreateUser,MainDriverCard,DeputyDriverCard,TransportCatpacityID,CorrectPlateNO,CorrectTrailerNO,CorrectTankNO,CorrectMainDriver,CorrectDeputyDriver,IsMainInfoCorrect,NormalProArray,ProblemProArray,CurrentStep,IsProjectCorrect from ";
+                    //查询未完成
+                    var sql = "select * from Y_DriverSalary where 1=1";
+                    var str = "";
+                    //if (!string.IsNullOrEmpty(data.keyword))
+                    //    str += $" and PlateNumber like '%{data.keyword}%'";
+                    //if (!string.IsNullOrEmpty(data.startTime))
+                    //    str += $" and Create_Time>={data.startTime}";
+                    //if (!string.IsNullOrEmpty(data.endTime))
+                    //    str += $" and Create_Time<={data.endTime}";
+                    //if (!string.IsNullOrEmpty(data.id))
+                    //    str += $" and id={data.id}";
+                    //if (!string.IsNullOrEmpty(data.checkStatus))
+                    //    if(data.checkStatus=="0")
+                    //if (data.searchFlag == "1")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4)";
+                    //else if (data.searchFlag == "2")
+                    //    str += $" and (CheckUpStatus=6 or CheckUpStatus=7)";
+                    //else if (data.ctype == "1")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4)";
+                    //else if (data.ctype == "3")
+                    //    str += $" and (CheckUpStatus=0 or CheckUpStatus=1 or CheckUpStatus=3 or CheckUpStatus=4 or CheckUpStatus=7)";
+                    //else
+                    //if(isMainDriver == 1)
+                    // str += $" and (or DeputyDriverStatus=0 or DeputyDriverStatus=2)";
+                    //if (isMainDriver == 2)
+                    //    str += $" and (DeputyDriverStatus=0 or DeputyDriverStatus=2)";
+                    if (!string.IsNullOrEmpty(data.wechat))
+                        str += $" and Account='{data.wechat}'";
+                    if (!string.IsNullOrEmpty(data.id))
+                        str += $" and id={data.id}";
+                    //if (data.checkStatus == "1")
+                    //    str += $"and CheckUpStatus=3 or CheckUpStatus=4";
+                    //if (!string.IsNullOrEmpty(data.id))
+                    //    str += $" and id='{data.id}'";
+                    string order;
+                    if (!string.IsNullOrEmpty(Convert.ToString(data.salaryMonth)))
+                        order = "SalaryMonth desc ";
+                    else
+                        order = "SalaryMonth desc ";
+
+                    sql += str;
+                    var sql3 = $"select count(*) as count from ({sql}) t3";
+                    result.totalElements = db.ExecuteScalar(sql3);
+
+                    //处理分页
+                    var pagesize = 20;
+                    var page = 0;
+                    if (data.size > 0) pagesize = 200000;
+                    if (data.page > 0) page = data.page;
+
+                    sql =
+                        $"select * from ({sql}) t2 order by {order} offset {pagesize * page} rows fetch next {pagesize} rows only";
+                    var list = db.QueryDynamicList(sql);
+                    //待填报
+                    foreach (var l in list)
+                    {
+                        var di = new DataItemDriverSalary();
+
+                        di.id = Convert.ToString(l.id);
+                        di.salaryMonth = Convert.ToString(l.SalaryMonth);
+                        di.driverName = l.DriverName;
+                        di.account = l.Account;
+                        di.productName = l.ProductName;
+                        di.plateNumber = l.PlateNumber;
+                        di.employeeAttribute = l.EmployeeAttribute;
+                        di.shipmentTrackingNo = l.ShipmentTrackingNo;
+                        di.deliveryTime = Convert.ToString(l.DeliveryTime);
+                        di.lineName = l.LineName;
+                        di.unloadPlace = l.UnloadPlace;
+                        di.heavyVehicleMileage = Convert.ToString(l.HeavyVehicleMileage);
+                        di.lightVehicleMileage = Convert.ToString(l.LightVehicleMileage);
+                        di.realityVehicleMileage = Convert.ToString(l.RealityVehicleMileage);
+                        di.doubleVehicleMieage = Convert.ToString(l.DoubleVehicleMieage);
+                        di.doubleTankVehicleMieage = Convert.ToString(l.DoubleTankVehicleMieage);
+                        di.unusualVehicleMieage = Convert.ToString(l.UnusualVehicleMieage);
+                        di.shenyangTimes = Convert.ToString(l.ShenyangTimes);
+                        di.yantaiTimes = Convert.ToString(l.YantaiTimes);
+                        di.remark = l.Remark;
+                        di.MDIHeatingTimes = Convert.ToString(l.MDIHeatingTimes);
+                        di.approvalVehicleMieage = Convert.ToString(l.ApprovalVehicleMieage);
+                        di.waitingDays = Convert.ToString(l.WaitingDays);
+                        di.zhuhaiBusiness = l.ZhuhaiBusiness;
+                        di.heavyNoHighwayMileage = Convert.ToString(l.HeavyNoHighwayMileage);
+                        di.lightNoHighwayMileage = Convert.ToString(l.LightNoHighwayMileage);
+                        di.trailer = l.Trailer;
+                        di.productSeriesNo = l.ProductSeriesNo;
+                        di.tankNo = l.TankNo;
+                        di.TON = Convert.ToString(l.TON);
+                        di.heavyOterMileage = Convert.ToString(l.HeavyOterMileage);
+                        di.lightOterMileage = Convert.ToString(l.LightOterMileage);
+                        di.highwaySubsidy = Convert.ToString(l.HighwaySubsidy);
+                        di.covid19Highway = Convert.ToString(l.Covid19Highway);
+
+
+
+                        //待修改---
+                        di.avartar = "http://api.woaijian.com/salary.svg";
+                            di.serviceStatus = "员工工资";
+                    result.data.Add(di);
+                }
+
+                    this.LogUser("GetDriverSalary", "HttpPost", " 查询员工薪资列表");
+                    return Ok(result);
+            }
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+        }
+    }
+}

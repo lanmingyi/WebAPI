@@ -1,0 +1,422 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Dapper;
+using YiTeng.Framework.Common;
+using YiTeng.Framework.Common.Interfaces;
+
+namespace YiTeng.Framework.DbController
+{
+    public static class PageHelper
+    {
+        /// <summary>
+        /// 按页码分页
+        /// </summary>
+        /// <param name="objects">要分页的数据集合</param>
+        /// <param name="pageIndex">页码</param>
+        /// <param name="pageSize">页大小</param>
+        /// <returns></returns>
+        public static object PageByIndex(this IEnumerable<object> objects, int pageIndex, int pageSize)
+        {
+            return objects.Skip(pageIndex * pageSize).Take(pageSize);
+        }
+
+        /// <summary>
+        /// 获取当前项在列表中的位置
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="list"></param>
+        /// <param name="item"></param>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        public static int GetPageIndex<T>(object[] list, object item, string property = "ID")
+        {
+            PropertyInfo ptyIdInfo = typeof(T).GetProperty(property);
+            var index = 0;
+            for (int i = 0; i < list.Length; i++)
+            {
+                var objid = ptyIdInfo.GetValue(list[i], null);
+                if (Equals(objid, item))
+                {
+                    index = i;
+                    break;
+                }
+            }
+            return index;
+        }
+
+        /// <summary>
+        /// 按lastid分页
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objects">要分页的数据集合</param>
+        /// <param name="item">分页项值</param>
+        /// <param name="property">分页项</param>
+        /// <param name="iswilful">分页项是最后一个还是任意中间一个</param>
+        /// <param name="pageSize">页大小</param>
+        /// <returns></returns>
+        public static object PageByLastId<T>(this IEnumerable<object> objects, object item, bool iswilful = false, int pageSize = 0, string property = "ID")
+        {
+            //if (pageSize == 0) pageSize = Int32.Parse(BaseHelper.GetValue("pageSize"));
+            if (pageSize == 0) pageSize = 10;
+            if (item == null || item.ToString() == "")
+            {
+                return objects.PageByIndex(0, pageSize);
+            }
+            var list = objects as object[] ?? objects.ToArray();
+            var index = GetPageIndex<T>(list, item, property);
+            if (iswilful)
+            {
+                return list.Skip(index + 1).Take(pageSize); //取任意ID后面pageSize条
+            }
+            else
+            {
+                if ((index + 1) % pageSize == 0)
+                {
+                    var pageIndex = index / pageSize + 1;
+                    return PageByIndex(list, pageIndex, pageSize);
+                }
+                else
+                {
+                    return new List<T>();
+                }
+            }
+        }
+    }
+    public class DbSqlHelper : DbHelperBase, IDbHelper, ILogable
+    {
+        public DbSqlHelper(string dbName = null) : base(dbName)
+        {
+        }
+
+        /// <summary>
+        ///     专门给日志类用的方法，不要手动使用
+        /// </summary>
+        /// <param name="str">要执行的插入日志的sql脚本</param>
+        /// <returns></returns>
+        public int InsertLog(string str)
+        {
+            return Execute(str);
+        }
+
+        /// <summary>
+        ///     单挑插入更新或删除
+        /// </summary>
+        /// <param name="query">sql语句</param>
+        /// <param name="obj">参数实体类</param>
+        /// <returns></returns>
+        /// null
+        public int Execute<T>(string query, T obj = null) where T : class
+        {
+            using (var connection = GetConnection())
+            {
+                try
+                {
+                    return connection.Execute(query, obj);
+                }
+                catch (Exception ex)
+                {
+                    this.LogError("执行sql出错:", ex);
+                    return 0;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     单挑插入更新或删除
+        /// </summary>
+        /// <param name="query">sql语句</param>
+        /// <returns></returns>
+        /// null
+        public int Execute(string query)
+        {
+            using (var connection = GetConnection())
+            {
+                try
+                {
+                    return connection.Execute(query);
+                }
+                catch (Exception ex)
+                {
+                    this.LogError("执行sql出错:", ex);
+                    throw ex;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     var query = connection.Query(Users)("select * from Users where UserName=@UserName", new { UserName = "jack" });
+        ///     返回第一条数据
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public T QueryOne<T>(string sql, object obj = null)
+        {
+            using (var connection = GetConnection())
+            {
+                var model =
+                    connection.Query<T>(sql, obj)
+                        .FirstOrDefault();
+                connection.Close();
+                return model;
+            }
+        }
+
+        /// <summary>
+        ///     返回实体类列表
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public List<T> QueryList<T>(string sql, object obj = null)
+        {
+            using (var connection = GetConnection())
+            {
+                try
+                {
+                    var model =
+                        connection.Query<T>(sql, obj).AsList();
+                    connection.Close();
+                    return model;
+                }
+                catch (Exception ex)
+                {
+                    this.LogError(ex);
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     执行sql返回行列表，不用实体类
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="obj"></param>
+        /// <returns>dynamic 列表</returns>
+        public List<dynamic> QueryDynamicList(string sql, object obj = null)
+        {
+            using (var connection = GetConnection())
+            {
+                try
+                {
+                    var rows = connection.Query(sql, obj).AsList();
+                    connection.Close();
+                    return rows;
+                }
+                catch (Exception ex)
+                {
+                    this.LogError(ex);
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     事务执行sql，单挑sql语句，例如批量修改
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public int ExecuteTransactionSql(string sql, object obj = null)
+        {
+            using (var connection = GetConnection())
+            {
+                var trans = connection.BeginTransaction();
+                var rows = 0;
+                try
+                {
+                    rows = connection.Execute(sql, obj, trans);
+                    if (rows > 0)
+                        trans.Commit();
+                    else
+                        trans.Rollback();
+                }
+                catch (Exception ex)
+                {
+                    this.LogError("执行事务出错", ex);
+                    trans.Rollback();
+                }
+                finally
+                {
+                    connection.Close();
+                }
+
+                return rows;
+            }
+        }
+
+        /// <summary>
+        ///     执行事务
+        /// </summary>
+        /// <param name="sqls">sql语句和参数的键值对数组</param>
+        /// <returns></returns>
+        public bool ExecuteTransactionSql(Dictionary<string, object> sqls)
+        {
+            using (var connection = GetConnection())
+            {
+                var trans = connection.BeginTransaction();
+                try
+                {
+                    foreach (var item in sqls)
+                        connection.Execute(item.Key, item.Value, trans);
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    this.LogError("执行事务出错", ex);
+                    trans.Rollback();
+                    return false;
+                }
+                finally
+                {
+                    connection.Close();
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        ///     没有参数的事务列表
+        /// </summary>
+        /// <param name="sqls"></param>
+        /// <returns></returns>
+        public bool ExecuteTransactionSql(List<string> sqls)
+        {
+            using (var connection = GetConnection())
+            {
+                var trans = connection.BeginTransaction();
+                var hs = 0;
+                try
+                {
+                    foreach (var item in sqls)
+                    {
+                        hs++;
+                        connection.Execute(item, null, trans);
+                    }
+
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("第" + hs + "行语句出错 " + sqls[hs - 1]);
+                    this.LogError("执行事务出错", ex);
+                    trans.Rollback();
+                    throw ex;
+                }
+                finally
+                {
+                    connection.Close();
+                }
+
+                return true;
+            }
+        }
+
+        public int ExecuteTransReturnOid(List<string> sqls)
+        {
+            var result = 0;
+            using (var connection = GetConnection())
+            {
+                var trans = connection.BeginTransaction();
+                var hs = 0;
+                try
+                {
+                    foreach (var item in sqls)
+                    {
+                        hs++;
+                        connection.Execute(item, null, trans);
+                        if (result == 0) result = connection.ExecuteScalar<int>("select @@identity");
+                    }
+
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("第" + hs + "行语句出错 " + sqls[hs - 1]);
+                    this.LogError("执行事务出错", ex);
+                    trans.Rollback();
+                    return -1;
+                }
+                finally
+                {
+                    connection.Close();
+                }
+
+                return result;
+            }
+        }
+
+        public int ExecuteScalar(string sql)
+        {
+            var result = 0;
+            using (var connection = GetConnection())
+            {
+                try
+                {
+                    result = connection.ExecuteScalar<int>(sql);
+                }
+                catch (Exception ex)
+                {
+                    this.LogError(ex);
+                    throw ex;
+                }
+                finally
+                {
+                    connection.Close();
+                }
+
+                return result;
+            }
+        }
+
+        public int ExecuteTransWithSubTableReturnOid(List<string> sqls)
+        {
+            var result = 0;
+            var level2 = 0;
+            using (var connection = GetConnection())
+            {
+                var trans = connection.BeginTransaction();
+                var hs = 0;
+                try
+                {
+                    foreach (var item in sqls)
+                    {
+                        var t = item;
+                        if (hs > 0)
+                        {
+                            t = item.Replace("@id@", result.ToString());
+                            t = t.Replace("@id2@", level2.ToString());
+                        }
+                        hs++;
+
+                        connection.Execute(t, null, trans);
+
+                        if (result == 0) result = connection.ExecuteScalar<int>("select @@identity", null, trans);
+                        else if (!item.Contains("@id2@"))
+                        {
+                            level2=connection.ExecuteScalar<int>("select @@identity", null, trans);
+                        }
+                    }
+
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("第" + hs + "行语句出错 " + sqls[hs - 1]);
+                    this.LogError("执行事务出错", ex);
+                    trans.Rollback();
+                    throw ex;
+                }
+                finally
+                {
+                    connection.Close();
+                }
+
+                return result;
+            }
+        }
+    }
+}

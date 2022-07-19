@@ -1,0 +1,55 @@
+using System;
+using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
+using YiTeng.Framework.Common;
+
+namespace YiTeng.WebAPI
+{
+    /// <summary>
+    ///     程序入口
+    /// </summary>
+    public class Program
+    {
+        /// <summary>
+        ///     程序入口
+        /// </summary>
+        /// <param name="args"></param>
+        public static void Main(string[] args)
+        {
+            //初始化全局变量
+            GlobalVar.InitVar();
+            //初始化Redis
+            //Redis.InitRedis(GlobalVar.RedisIp, GlobalVar.RedisPassword);
+            //配置文件监视器，可以热更新配置文件
+            IFileProvider fileProvider = new PhysicalFileProvider(GlobalVar.CurrentPath);
+            ChangeToken.OnChange(() => fileProvider.Watch("config.json"), ReloadVars);
+
+            BuildWebHost(args).Run();
+
+            Environment.Exit(0);
+        }
+
+        private static void ReloadVars()
+        {
+            GlobalVar.InitVar();
+        }
+
+        //dotnet publish --configuration Release -o publish
+        //dotnet build --configuration Release --no-dependencies --no-incremental
+        //dotnet publish -c Release -r win10-x64 -o "c:\publish"
+        /// <summary>
+        ///     创建服务
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        public static IWebHost BuildWebHost(string[] args)
+        {
+            return WebHost.CreateDefaultBuilder(args)
+                .UseUrls("http://*:" + GlobalVar.HttpPort)
+                .UseStartup<Startup>()
+                .Build();
+        }
+    }
+}

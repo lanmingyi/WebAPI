@@ -1,0 +1,239 @@
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using YiTeng.Controllers.Base;
+using YiTeng.Framework.Common;
+using YiTeng.Models.SystemModel;
+using gpsdll;
+using System.Data;
+using System.IO;
+using System.Net;
+using static YiTeng.Models.SystemModel.DriverOrder;
+using Newtonsoft.Json;
+
+namespace YiTeng.Controllers.SystemController
+{
+    public class DriverOrder:SessionController
+    {
+        ///<summary>
+        ///查询司机身份证号
+        /// </summary>
+        /// <returns>string ids</returns>
+        public string GetIdentity(string wechat)
+        {
+            try
+            {
+                responseIdentity result;
+                var db = GetDbSqlHelper();
+                var sql = "";
+                if (!string.IsNullOrEmpty(wechat))
+                {
+                    sql = $"select ETTP_IDENTIFICATION_NO from Y_Driver where Wechat='{wechat}'";
+                    result = db.QueryOne<responseIdentity>(sql);
+                }
+                else
+                {
+                    result = null;
+                }
+                return result.ETTP_IDENTIFICATION_NO;
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return "失败";
+            }
+        }
+        ///<param name="wechat"></param>
+        ///<summary>
+        ///判断是否是主驾
+        /// </summary>
+        /// <returns>1：主驾 2：副驾</returns>
+        public int IsMainDriver(string wechat,int id)
+        {
+            try
+            {
+                responseDriverIdentity result;
+                var identity = GetIdentity(wechat);
+                var db = GetDbSqlHelper();
+                var sql = "";
+                if (!string.IsNullOrEmpty(identity))
+                {
+                    sql = $"select case when driverId='{identity}' then 1 else 2 end as isMainDriver from Y_Entering where driverId='{identity}' or supercargoId='{identity}' and id=";
+                    result = db.QueryOne<responseDriverIdentity>(sql);
+                }
+                else
+                {
+                    result = null;
+                }
+                return result.isMainDriver;
+            }
+            catch(Exception ex)
+            {
+                this.LogError(ex);
+                return 0;
+            }
+        }
+        /**
+         * 获取客户须知
+         */
+        public string getShouldKnow(string customerName,string customerADDRESS)
+        {
+
+            
+            var db = GetDbSqlHelper();
+            string queryString = $"select EBCC_NEEDKNOW, EBCC_ADDRESS from Y_CUSTOMER_ADDRESS left join Y_CUSTOMER on Y_CUSTOMER_ADDRESS.EBCC_CONTACT_NO = Y_CUSTOMER.id where Y_CUSTOMER.EBCU_NAME_CN = '{customerName}' and Y_CUSTOMER_ADDRESS.EBCC_ADDRESS='{customerADDRESS}'";
+
+            var list = db.QueryDynamicList(queryString);
+            string content = "";
+            foreach (var l in list)
+            {
+                content += l.EBCC_NEEDKNOW + ";";
+            }
+                return content;
+        }
+
+
+        public string getShouldKnowChanPin(string chanpinName, string paihao)
+        {
+            var db = GetDbSqlHelper();
+            string queryString = $"select a.Content,b.mingcheng,isnull(b.xinghao,'') as paihao from  Y_Chanpin_ShouldKnow  a left join ty_crm_ChangPin  b  on a.chanpinid=b.id where b.mingcheng = '{chanpinName}'  and isnull(b.xinghao,'')= '{paihao}'";
+            var list = db.QueryDynamicList(queryString);
+            string content = "";
+            foreach (var l in list)
+            {
+                content += l.Content + ";";
+            }
+            return content;
+
+
+        }
+
+        /**
+         * 接单明细 
+         */
+        [HttpPost]
+        [Route("orderReceivingDetails")]
+        public IActionResult orderReceivingDetails([FromBody] GetDriverOrderRequest data) {
+            try
+            {
+                var constr = GlobalVar.ConnString + GlobalVar.DbName;
+                GPSDb gdb = new GPSDb(constr);
+                var result = new DataItemDriverOrder();
+                
+                if (string.IsNullOrEmpty(data.responseQX))
+                    data.responseQX = "";
+                if (!gdb.QuanXianCx("ck101c", data.responseQX) || string.IsNullOrEmpty(data.wechat))
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                        var db = GetDbSqlHelper();
+                    //var sql = $"select top 1 (select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO=supercargoId) as Copilottel,(select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO=y_Entering.driverId) as drivertel,(select Realname from ty_User where id=y_Entering.AddUser) as AddUserStr,isnull(DriverOrderStatus,0) as dos,LTrim(RTrim(y_Entering.DeliveryProvince))+'-'+LTrim(RTrim(y_Entering.DeliveryCity))+'-'+LTrim(RTrim(y_Entering.DeliveryDistrict)) as District,Y_DriverOrder.status as detailStatus,TransportTaskNo,Y_TransportMaintain.ArrivalName,Y_TransportMaintain.ArrivalSite,* from y_Entering left join Y_DriverOrder on y_Entering.id = Y_DriverOrder.EnteringId left join Y_TransportMaintain on y_Entering.TransportCapacityID = Y_TransportMaintain.ID where y_Entering.id = {data.id} or Y_DriverOrder.EnteringID = {data.id}";
+
+                    //var sql = $"select top 1 case when driverId=(select ETTP_IDENTIFICATION_NO from Y_Driver where wechat='{data.wechat}') then 1 else 2 end as isMainDriver,(select ETTP_IDENTIFICATION_NO from Y_Driver where wechat='{data.wechat}') as identityNO,isnull(DriverArriveConfirm,0) as DriverArriveConfirm,(select Realname from ty_User where id=aa.AddUser) as AddUserStr,LTrim(RTrim(aa.DeliveryProvince))+'-'+LTrim(RTrim(aa.DeliveryCity))+'-'+LTrim(RTrim(aa.DeliveryDistrict)) as District,(select Realname from ty_User where id=aa.AddUser) as AddUserStr,(select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO=aa.driverId) as drivertel,(select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO=supercargoId) as Copilottel,(select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO=supercargoId) as Copilottel,(select EBCC_NEEDKNOW1 from Y_SiteManage_BAND where AddressID in (select id from Y_SiteManage where code = aa.dzid ) and CahnpinLx = aa.ChangPinLx) as EBCC_NEEDKNOW1,(select EBCC_NEEDKNOW2 from Y_SiteManage_BAND where AddressID in (select id from Y_SiteManage where code = aa.dzid ) and CahnpinLx = aa.ChangPinLx) as EBCC_NEEDKNOW2,Longitude,Dimension,picture,aa.*,isnull(DriverOrderStatus,0) as dos,DriverOrderStatus,(select field from Y_SiteManage where code = aa.dzid ) as field,(select isnull(ifsendmessige,0) from Y_SiteManage where code = aa.dzid ) as bigcum from( select isnull((select top 1 QuoteSite from Y_CUSTOMER_ADDRESS where EBCC_CONTACT_NO in (select id from Y_CUSTOMER where ebcu_name_cn = Y_Entering.Customer ) and EBCC_DeliveryProvince = y_entering.DeliveryProvince  and EBCC_DeliveryCity = y_entering.DeliveryCity and EBCC_DeliveryDistrict = y_entering.DeliveryDistrict) ,'0' ) as dzid,y_entering.* from y_entering where id = {data.id} ) aa left join Y_SiteManage  b on aa.dzid = b.code";
+                    var sql = $"select top 1 case when driverId=(select ETTP_IDENTIFICATION_NO from Y_Driver where wechat = '{data.wechat}') then 1 else 2 end as isMainDriver, (select ETTP_IDENTIFICATION_NO from Y_Driver where wechat = '{data.wechat}') as identityNO, isnull(DriverArriveConfirm, 0) as DriverArriveConfirm,(select Realname from ty_User where id = aa.AddUser) as AddUserStr, LTrim(RTrim(aa.DeliveryProvince)) + '-' + LTrim(RTrim(aa.DeliveryCity)) + '-' + LTrim(RTrim(aa.DeliveryDistrict)) as District, (select Realname from ty_User where id = aa.AddUser) as AddUserStr, (select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO = aa.driverId) as drivertel, (select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO = supercargoId) as Copilottel, (select ETTP_TEL from Y_Driver where ETTP_IDENTIFICATION_NO = supercargoId) as Copilottel, (select EBCC_NEEDKNOW1 from Y_SiteManage_BAND where AddressID = Siteid and CahnpinLx = aa.ChangPinLx) as EBCC_NEEDKNOW1, (select EBCC_NEEDKNOW2 from Y_SiteManage_BAND where AddressID = Siteid and CahnpinLx = aa.ChangPinLx) as EBCC_NEEDKNOW2, b.Longitude,b.Dimension,b.picture,b.RangeMetre,aa.*,isnull(DriverOrderStatus, 0) as dos,DriverOrderStatus, field ,  isnull(ifsendmessige, 0) as bigcum  from y_entering aa left join Y_SiteManage b on aa.Siteid = b.code  where aa.id = { data.id}";
+                    
+                        result = db.QueryOne<DataItemDriverOrder>(sql);
+                        this.LogUser("orderReceivingDetails", "HttpPost", " 查看接单明细");
+                        result.ShouldKnow = getShouldKnow(result.ArrivalName, result.ArrivalSite);
+                        result.ShouldKnowChanPin = getShouldKnowChanPin(result.ChangPin, result.BrandNO);
+                    return Ok(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.LogError(ex);
+                return StatusCode(500, ex);
+            }
+
+
+
+        }
+
+        /*
+         * 司机接/拒单
+         */
+        [HttpPost]
+        [Route("updateOrderReceivingDetails")]
+        public IActionResult updateReceivingDetails([FromBody] GetDriverOrderRequest data) {
+            if (!string.IsNullOrEmpty(Convert.ToString(data.id)) && !string.IsNullOrEmpty(Convert.ToString(data.doc)))
+            {
+                var db = GetDbSqlHelper();
+                var driverId = GetIdentity(data.wechat);
+                var sqls = new List<string>();
+                var sql1 = "";
+                var sql2 = "";
+                var sql = $"update Y_Entering set DriverOrderStatus = {data.doc} where id = {data.id}";
+                sqls.Add(sql);
+                if (data.doc.Equals("1")) {//接单
+                    sql1 = $"insert into Y_DriverOrder (driverId,EnteringId,Status,Addtime) values ('{driverId}',{data.id},0,'"+DateTime.Now.ToString()+"')";
+                }
+                else if (data.doc.Equals("2"))//拒绝
+                {
+                    sql1 = $"insert into Y_DriverOrder (driverId,RefuseReason,EnteringId,Status,Addtime) values ('{driverId}','{data.RefuseReason}',{data.id},1,'"+ DateTime.Now.ToString() + "')";
+                }
+                if (data.doc.Equals("3"))
+                {//到达确认
+                    sql2 = $"update Y_Entering set DriverArriveConfirm=1,DriverArriveTime='{DateTime.Now}' where id={data.id}";
+                    sqls.Add(sql2);
+                    sql1 = $"insert into Y_DriverOrder (driverId,EnteringId,Status,Addtime) values ('{driverId}',{data.id},3,'" + DateTime.Now.ToString() + "')";
+                }
+                if (sql1!="")
+                    sqls.Add(sql1);
+                db.ExecuteTransWithSubTableReturnOid(sqls);
+                this.LogUser("updateOrderReceivingDetails", "HttpPost", " 司机接/拒单");
+                
+                return Ok(data.doc);
+            }
+            return Ok("主键不能为空");
+        }
+        /// <summary>
+        /// 坐标转换
+        /// </summary>
+        /// <param name="longitude"></param>
+        /// <param name="latitude"></param>
+        /// <param name="lx"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("getBaiducoor")]
+        public IActionResult getBaiducoor([FromBody] GetLocationRequest data)//坐标转换的方法
+        {
+            var result = new DataItemLocation();
+            //double longitude = coord[0];
+            //double latitude = coord[1];
+            //需要转的gps经纬度
+            string convertUrl = "http://api.map.baidu.com/ag/coord/convert?from=2&to=4&x=" + data.longitude + "&y=" + data.latitude + "";
+            if (data.lx == 1)
+            {
+                convertUrl = "http://api.map.baidu.com/ag/coord/convert?from=0&to=4&x=" + data.longitude + "&y=" + data.latitude + "";
+            }
+
+            HttpWebRequest request = (HttpWebRequest)System.Net.HttpWebRequest.Create(convertUrl);//创建http请求
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+            Stream responseStream = response.GetResponseStream();
+            StreamReader sr = new StreamReader(responseStream, Encoding.GetEncoding("utf-8"));
+            string responseTxt = sr.ReadToEnd();
+            sr.Close();
+            sr.Dispose();
+
+
+            CoorConvert mapconvert = new CoorConvert();//创建存放结果的对象
+            mapconvert = JsonConvert.DeserializeObject<CoorConvert>(responseTxt);//赋值
+
+            string lon = mapconvert.x;
+            string lat = mapconvert.y;
+
+            byte[] xBuffer = Convert.FromBase64String(lon);//坐标base64解密
+            string strX = Encoding.UTF8.GetString(xBuffer, 0, xBuffer.Length);
+
+            byte[] yBuffer = Convert.FromBase64String(lat);
+            string strY = Encoding.UTF8.GetString(yBuffer, 0, xBuffer.Length);
+
+            result.strX = strX;
+            result.strY = strY;
+            return Ok(result);
+        }
+    }
+}
